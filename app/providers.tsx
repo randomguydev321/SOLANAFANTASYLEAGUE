@@ -20,7 +20,10 @@ export default function Providers({
   // Use only Solana-specific wallet adapters
   const wallets = useMemo(
     () => [
-      new SolflareWalletAdapter(),
+      new SolflareWalletAdapter({
+        // Disable MetaMask detection to prevent warnings
+        detectEthereumProvider: false,
+      }),
     ],
     []
   );

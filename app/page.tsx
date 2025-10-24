@@ -10,6 +10,7 @@ import LiveGamesWidget from './components/LiveGamesWidget';
 import WeeklyMatchup from './components/WeeklyMatchup';
 import NBAStatsService from './services/nbaStatsService';
 import TournamentService from './services/tournamentService';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Solana Program ID (this would be your deployed program ID)
 const PROGRAM_ID = new PublicKey("NBAFantasy111111111111111111111111111111111");
@@ -283,15 +284,8 @@ export default function Home() {
     const otherUsers = allUsers.filter((user: string) => user !== userWallet);
     
     if (otherUsers.length === 0) {
-      // If no other users, create a bot opponent with Solana-style address
-      return {
-        opponent: 'Bot_Opponent_001',
-        opponentWallet: 'So11111111111111111111111111111111111111112', // Solana system program address
-        isBot: true,
-        matchupId: `matchup_${Date.now()}`,
-        startTime: new Date().toISOString(),
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-      };
+      // If no other users, return null to indicate no matchup available
+      return null;
     }
     
     // Randomly select an opponent and get their username
@@ -354,8 +348,12 @@ export default function Home() {
 
   const shuffleOpponent = (userWallet: string) => {
     const newMatchup = generateDailyMatchup(userWallet);
-    saveMatchup(userWallet, newMatchup, shuffleMode);
-    setUserMatchup(newMatchup);
+    if (newMatchup) {
+      saveMatchup(userWallet, newMatchup, shuffleMode);
+      setUserMatchup(newMatchup);
+    } else {
+      setUserMatchup(null);
+    }
     return newMatchup;
   };
 
@@ -437,7 +435,9 @@ export default function Home() {
         if (!currentMatchup) {
           // Generate new matchup
           currentMatchup = generateDailyMatchup(walletAddress);
-          saveMatchup(walletAddress, currentMatchup, shuffleMode);
+          if (currentMatchup) {
+            saveMatchup(walletAddress, currentMatchup, shuffleMode);
+          }
           
           // Add user to registered users list
           const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -681,7 +681,7 @@ export default function Home() {
 
   // Don't render wallet-dependent content until client-side
   if (!isClient) {
-    return (
+  return (
       <div className="min-h-screen relative flex items-center justify-center" style={{ background: '#0a0e27' }}>
         <div className="text-center">
           <div className="text-6xl mb-4">🏀</div>
@@ -692,6 +692,7 @@ export default function Home() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen relative" style={{ background: '#0a0e27' }}>
       {/* Username Selection Modal */}
       {showUsernameModal && (
@@ -1170,8 +1171,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Daily Matchup Information */}
-          {wallet.connected && userMatchup && userProfile && (
+          {/* Matchup Information */}
+          {wallet.connected && userProfile && (
             <div className="mb-8">
               <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6 transform -skew-x-3">
                 <div className="skew-x-3">
@@ -1189,6 +1190,10 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
+                  
+                  {userMatchup ? (
+                    // Show matchup when opponent is available
+                    <>
                   
                   <div className="grid grid-cols-2 gap-6 mb-4">
                     <div className="text-center">
@@ -1248,6 +1253,22 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                    </>
+                  ) : (
+            // Show waiting message when no opponent is available
+            <div className="text-center py-8">
+              <div className="text-6xl mb-4">⏳</div>
+              <h3 className="text-white text-xl font-bold mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                Waiting for Opponents
+              </h3>
+              <p className="text-gray-300 text-sm mb-4">
+                You're the first player! Share the game with friends to start competing.
+              </p>
+              <div className="text-gray-400 text-xs">
+                Real opponents will appear here when they connect their wallets
+              </div>
+            </div>
+          )}
                 </div>
               </div>
             </div>
@@ -1357,5 +1378,6 @@ export default function Home() {
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 }
