@@ -103,6 +103,21 @@ export default function BasketballCourt({
               🏀 Build Your Lineup
             </h2>
             
+            {/* Live Stats Indicator */}
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="flex items-center gap-2 bg-[#f2a900] px-4 py-2 border-4 border-white transform -skew-x-3">
+                <div className="skew-x-3 flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-[#0a0e27] font-black text-sm uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                    Live Stats Active
+                  </span>
+                </div>
+              </div>
+              <div className="text-white/80 text-sm font-bold">
+                Updates every 2 minutes
+              </div>
+            </div>
+            
             {/* Progress Bar */}
             <div className="max-w-2xl mx-auto mb-6">
               <div className="flex items-center justify-between mb-2">
@@ -580,28 +595,60 @@ export default function BasketballCourt({
                           <p className={`text-sm font-bold ${isSelected ? 'text-gray-700' : 'text-gray-300'}`}>{player.team}</p>
                         </div>
                   
-                  {stats && (
-                          <div className={`border-3 p-3 ${isSelected ? 'border-gray-400 bg-gray-50' : 'border-[#f2a900] bg-[#0a0e27]'}`}>
-                            <div className="grid grid-cols-3 gap-2 text-sm mb-2">
-                              <div className="text-center">
-                                <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>PTS</div>
-                                <div className={`font-black text-lg ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.pts}</div>
-                              </div>
-                              <div className="text-center">
-                                <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>REB</div>
-                                <div className={`font-black text-lg ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.reb}</div>
+                  {/* Live Stats Section - Always Show */}
+                  <div className={`border-3 p-3 ${isSelected ? 'border-gray-400 bg-gray-50' : 'border-[#f2a900] bg-[#0a0e27]'}`}>
+                    {stats ? (
+                      <>
+                        {/* Live Stats Grid */}
+                        <div className="grid grid-cols-3 gap-2 text-sm mb-2">
+                          <div className="text-center">
+                            <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>PTS</div>
+                            <div className={`font-black text-lg ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.pts}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>REB</div>
+                            <div className={`font-black text-lg ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.reb}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>AST</div>
+                            <div className={`font-black text-lg ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.ast}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Additional Stats */}
+                        <div className="grid grid-cols-3 gap-2 text-sm mb-2">
+                          <div className="text-center">
+                            <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>STL</div>
+                            <div className={`font-black text-sm ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.stl}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>BLK</div>
+                            <div className={`font-black text-sm ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.blk}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>TO</div>
+                            <div className={`font-black text-sm ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.to}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Fantasy Points */}
+                        <div className={`border-t-3 pt-2 text-center ${isSelected ? 'border-gray-400' : 'border-[#f2a900]'}`}>
+                          <div className="font-black text-[#f2a900] text-sm uppercase tracking-wider">Fantasy PTS</div>
+                          <div className="font-black text-[#f2a900] text-3xl" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>
+                        </div>
+                      </>
+                    ) : (
+                      /* No Live Stats Available */
+                      <div className="text-center py-4">
+                        <div className={`text-sm font-bold ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>
+                          📊 Live Stats Loading...
+                        </div>
+                        <div className={`text-xs ${isSelected ? 'text-gray-500' : 'text-gray-500'}`}>
+                          Stats update every 2 minutes
+                        </div>
                       </div>
-                              <div className="text-center">
-                                <div className={`font-bold text-xs uppercase ${isSelected ? 'text-gray-600' : 'text-gray-300'}`}>AST</div>
-                                <div className={`font-black text-lg ${isSelected ? 'text-gray-900' : 'text-white'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.ast}</div>
-                      </div>
-                      </div>
-                            <div className={`border-t-3 pt-2 text-center ${isSelected ? 'border-gray-400' : 'border-[#f2a900]'}`}>
-                              <div className="font-black text-[#f2a900] text-sm uppercase tracking-wider">Fantasy PTS</div>
-                              <div className="font-black text-[#f2a900] text-3xl" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                       </div>
                 </div>
               </div>
