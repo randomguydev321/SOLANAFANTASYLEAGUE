@@ -660,12 +660,77 @@ export default function Home() {
               {/* Basketball Court */}
               <BasketballCourt
                 players={players}
-                lineup={lineup}
-                setLineup={setLineup}
                 playerStats={playerStats}
-                registerLineup={registerLineup}
-                wallet={wallet}
+                selectedByPosition={lineup}
+                onSelectPlayer={(playerId, position) => {
+                  setLineup(prev => ({
+                    ...prev,
+                    [position]: playerId
+                  }));
+                }}
               />
+
+              {/* Lineup Registration */}
+              {wallet.connected && (
+                <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[#f2a900] text-xl font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                      🏀 Register Lineup
+                    </h3>
+                    <div className="text-right">
+                      <div className="text-white font-bold text-sm">Team Score</div>
+                      <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                        {calculateTeamScore().toFixed(1)}
+            </div>
+            </div>
+          </div>
+
+                  <div className="grid grid-cols-5 gap-4 mb-4">
+                    {Object.entries(lineup).map(([position, playerId]) => {
+                      const player = players.find(p => p.id === playerId);
+                      return (
+                        <div key={position} className="text-center">
+                          <div className="text-gray-400 text-xs font-bold uppercase mb-1">{position}</div>
+                          <div className="bg-[#0a0e27] border border-gray-600 p-2 rounded">
+                            {player ? (
+                              <div>
+                                <div className="text-white text-xs font-bold">{player.name}</div>
+                                <div className="text-gray-400 text-xs">{player.team}</div>
+                                <div className="text-[#f2a900] text-xs font-bold">{player.salary} tokens</div>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500 text-xs">Empty</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <div className="text-gray-300">Total Salary: <span className="text-white font-bold">
+                        {Object.values(lineup).reduce((sum, playerId) => {
+                          const player = players.find(p => p.id === playerId);
+                          return sum + (player?.salary || 0);
+                        }, 0)}/15 tokens
+                      </span></div>
+                    </div>
+            <button
+              onClick={registerLineup}
+                      disabled={Object.values(lineup).some(pos => pos === null) || 
+                               Object.values(lineup).reduce((sum, playerId) => {
+                                 const player = players.find(p => p.id === playerId);
+                                 return sum + (player?.salary || 0);
+                               }, 0) > 15}
+                      className="bg-[#f2a900] text-[#0a0e27] px-6 py-3 font-black uppercase tracking-wider hover:bg-white transition-colors disabled:bg-gray-600 disabled:text-gray-400"
+              style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+            >
+                      Register Lineup
+            </button>
+                  </div>
+                </div>
+              )}
 
               {/* Live Games Widget */}
               <LiveGamesWidget />
