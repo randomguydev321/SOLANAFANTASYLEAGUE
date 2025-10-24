@@ -727,7 +727,7 @@ export default function Home() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Entry Fee:</span>
-                      <span className="text-[#f2a900] font-bold">{currentTournament.entryFee} SOL</span>
+                      <span className="text-green-500 font-bold">FREE</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Participants:</span>

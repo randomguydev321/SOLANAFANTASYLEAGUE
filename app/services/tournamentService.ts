@@ -58,7 +58,7 @@ export class TournamentService {
   private static instance: TournamentService;
   private tournaments: Map<string, Tournament> = new Map();
   private userLineups: Map<string, UserLineup> = new Map();
-  private readonly TOURNAMENT_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+  private readonly TOURNAMENT_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 days
 
   static getInstance(): TournamentService {
     if (!TournamentService.instance) {
@@ -67,8 +67,8 @@ export class TournamentService {
     return TournamentService.instance;
   }
 
-  // Create a new tournament
-  createTournament(name: string, entryFee: number): Tournament {
+  // Create a new tournament (FREE by default)
+  createTournament(name: string, entryFee: number = 0): Tournament {
     const now = new Date();
     const startTime = new Date(now.getTime() + 60 * 60 * 1000); // Start in 1 hour
     const lineupDeadline = new Date(startTime.getTime() - 2 * 60 * 60 * 1000); // 2 hours before start
@@ -380,10 +380,10 @@ export class TournamentService {
     return Math.max(0, timeRemaining);
   }
 
-  // Initialize with a default tournament
+  // Initialize with a default tournament (FREE)
   initializeDefaultTournament(): void {
-    const tournament = this.createTournament("Daily NBA Fantasy", 0.1); // 0.1 SOL entry
-    console.log('Created default tournament:', tournament.id);
+    const tournament = this.createTournament("3-Day NBA Fantasy League", 0); // FREE entry
+    console.log('Created default FREE tournament:', tournament.id);
   }
 }
 

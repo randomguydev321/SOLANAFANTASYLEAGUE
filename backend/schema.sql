@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     lineup_deadline TIMESTAMP NOT NULL,
-    entry_fee DECIMAL(10,2) NOT NULL CHECK (entry_fee > 0),
+    entry_fee DECIMAL(10,2) NOT NULL CHECK (entry_fee >= 0), -- Allow FREE tournaments
     prize_pool DECIMAL(10,2) NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -117,14 +117,14 @@ INSERT INTO players (id, name, team, position, salary, nba_id, photo) VALUES
 (121, 'NIKOLA JOKIC', 'NUGGETS', 'C', 5, '203999', 'https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png')
 ON CONFLICT (id) DO NOTHING;
 
--- Insert sample tournament
+-- Insert FREE 3-day tournament
 INSERT INTO tournaments (id, name, start_time, end_time, lineup_deadline, entry_fee, prize_pool, status) VALUES
-('tournament_daily_' || EXTRACT(EPOCH FROM NOW())::bigint, 
- 'Daily NBA Fantasy', 
+('tournament_3day_' || EXTRACT(EPOCH FROM NOW())::bigint, 
+ '3-Day NBA Fantasy League', 
  NOW() + INTERVAL '1 hour',
- NOW() + INTERVAL '25 hours',
+ NOW() + INTERVAL '73 hours', -- 3 days
  NOW() + INTERVAL '-1 hour', -- 1 hour ago (deadline passed)
- 0.1, 
+ 0, -- FREE entry
  0, 
  'upcoming')
 ON CONFLICT (id) DO NOTHING;
