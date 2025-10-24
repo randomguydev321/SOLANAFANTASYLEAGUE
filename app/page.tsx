@@ -43,11 +43,11 @@ interface Player {
 }
 
 interface Lineup {
-  PG: number | null;
-  SG: number | null;
-  SF: number | null;
-  PF: number | null;
-  C: number | null;
+    PG: number | null;
+    SG: number | null;
+    SF: number | null;
+    PF: number | null;
+    C: number | null;
 }
 
 interface UserProfile {
@@ -194,13 +194,16 @@ export default function Home() {
   useEffect(() => {
     if (isClient) {
       const tournamentService = TournamentService.getInstance();
-      const activeTournament = tournamentService.getCurrentActiveTournament();
+      const activeTournament = tournamentService.getCurrentTournament();
       setCurrentTournament(activeTournament);
       
       // Set up deadline timer
       const updateDeadline = () => {
-        const timeRemaining = tournamentService.getTimeUntilLineupDeadline(activeTournament.id);
-        setTimeUntilDeadline(timeRemaining);
+        if (activeTournament) {
+          const now = new Date();
+          const timeRemaining = activeTournament.lineupDeadline.getTime() - now.getTime();
+          setTimeUntilDeadline(Math.max(0, timeRemaining));
+        }
       };
       
       updateDeadline();
@@ -376,19 +379,25 @@ export default function Home() {
 
     try {
       const tournamentService = TournamentService.getInstance();
-      const currentTournament = tournamentService.getCurrentActiveTournament();
+      const currentTournament = tournamentService.getCurrentTournament();
       
-      // Register for tournament
-      await tournamentService.registerForTournament(currentTournament.id, wallet.publicKey.toString());
+      // Register lineup for tournament
+      const totalSalary = positions.reduce((sum, playerId) => {
+        const player = players.find(p => p.id === playerId);
+        return sum + (player?.salary || 0);
+      }, 0);
       
-      // Submit lineup
-      const currentTeamScore = calculateTeamScore();
-      await tournamentService.submitLineup(
-        currentTournament.id,
+      const success = tournamentService.registerLineup(
         wallet.publicKey.toString(),
+        currentTournament.id,
         lineup as any,
-        currentTeamScore
+        totalSalary
       );
+      
+      if (!success) {
+        alert('Failed to register lineup. Tournament may be full or deadline passed.');
+        return;
+      }
 
       // Add to registered users
       const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -402,6 +411,7 @@ export default function Home() {
         shuffleOpponent(wallet.publicKey.toString());
       }
 
+      const currentTeamScore = calculateTeamScore();
       alert(`Lineup registered successfully! Team Score: ${currentTeamScore.toFixed(1)} fantasy points`);
     } catch (error) {
       console.error('Error registering lineup:', error);
@@ -461,15 +471,15 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#1a1f3a] to-[#0a0e27]">
-        {/* Header */}
+      {/* Header */}
         <header className="bg-[#1a1f3a] border-b-4 border-[#f2a900] p-6">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="text-4xl">🏀</div>
-              <div>
+                <div>
                 <h1 className="text-3xl font-black text-white uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   NBA Fantasy League
-                </h1>
+                  </h1>
                 <p className="text-[#f2a900] font-bold text-sm">Solana Blockchain • Real Stats • Real Money</p>
               </div>
             </div>
@@ -479,7 +489,7 @@ export default function Home() {
                 <div className="text-white font-bold text-sm uppercase tracking-wider">Salary Cap</div>
                 <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   15 Tokens
-                </div>
+                  </div>
               </div>
               
               <div className="text-center">
@@ -513,20 +523,20 @@ export default function Home() {
                 maxLength={20}
               />
               <div className="flex gap-3">
-                <button
+                <button 
                   onClick={handleUsernameSubmit}
                   className="flex-1 bg-[#f2a900] text-[#0a0e27] py-3 font-black uppercase tracking-wider hover:bg-white transition-colors"
                   style={{ fontFamily: 'Bebas Neue, sans-serif' }}
                 >
                   Save Username
                 </button>
-                <button
+              <button 
                   onClick={() => setShowUsernameModal(false)}
                   className="flex-1 bg-gray-600 text-white py-3 font-black uppercase tracking-wider hover:bg-gray-500 transition-colors"
-                  style={{ fontFamily: 'Bebas Neue, sans-serif' }}
-                >
+                style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+              >
                   Cancel
-                </button>
+              </button>
               </div>
             </div>
           </div>
@@ -538,7 +548,7 @@ export default function Home() {
             <div className="lg:col-span-2 space-y-8">
               {/* Live Matchup */}
               {wallet.connected && userProfile && (
-                <div className="mb-8">
+          <div className="mb-8">
                   <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6 transform -skew-x-3">
                     <div className="skew-x-3">
                       <div className="flex items-center justify-between mb-4">
@@ -553,9 +563,9 @@ export default function Home() {
                           >
                             🔄 Shuffle
                           </button>
-                        </div>
-                      </div>
-                      
+                    </div>
+                  </div>
+
                       {userMatchup ? (
                         // Show matchup when real opponent is available
                         <>
@@ -564,15 +574,15 @@ export default function Home() {
                               <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">You</div>
                               <div className="bg-[#f2a900] text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                                 {userProfile.username}
-                              </div>
+                          </div>
                               <div className="text-gray-400 text-xs mt-1">
                                 {userProfile.wins}W - {userProfile.losses}L
-                              </div>
+                        </div>
                               <div className="text-[#f2a900] text-xs font-bold mt-1">
                                 Total: {userProfile.wins + userProfile.losses} Games
-                              </div>
-                            </div>
-                            
+                      </div>
+                    </div>
+
                             <div className="text-center">
                               <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">vs</div>
                               <div className="bg-white text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
@@ -580,13 +590,13 @@ export default function Home() {
                               </div>
                               <div className="text-gray-400 text-xs mt-1">
                                 Real Solana User
-                              </div>
+                          </div>
                               <div className="text-gray-400 text-xs">
                                 Random Opponent
-                              </div>
-                            </div>
-                          </div>
-                          
+                        </div>
+                      </div>
+                    </div>
+
                           <div className="text-center mb-4">
                             <div className="text-gray-300 text-sm mb-2">
                               Matchup expires in: <span className="text-[#f2a900] font-bold">{Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m</span>
@@ -603,7 +613,7 @@ export default function Home() {
                             <div className="text-center mb-3">
                               <div className="text-white font-bold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                                 Shuffle Mode
-                              </div>
+                        </div>
                               <div className="flex gap-2 justify-center">
                                 {(['every-game', 'hourly', 'daily'] as const).map((mode) => (
                                   <button
@@ -620,9 +630,9 @@ export default function Home() {
                                      mode === 'hourly' ? 'Hourly' : 'Daily'}
                                   </button>
                                 ))}
-                              </div>
-                            </div>
-                          </div>
+                      </div>
+                    </div>
+                  </div>
                         </>
                       ) : (
                         // Show waiting message when no real opponents available
@@ -659,11 +669,11 @@ export default function Home() {
 
               {/* Live Games Widget */}
               <LiveGamesWidget />
-            </div>
+          </div>
 
             {/* Sidebar */}
             <div className="space-y-8">
-              {/* Leaderboard */}
+          {/* Leaderboard */}
               <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6">
                 <h3 className="text-[#f2a900] text-xl font-black uppercase tracking-wider mb-4" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   🏆 Leaderboard
@@ -680,13 +690,13 @@ export default function Home() {
                             'bg-gray-600 text-white'
                           }`}>
                             {index + 1}
-                          </div>
+                </div>
                           <div>
                             <div className="text-white font-bold text-sm">{entry.username}</div>
                             <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
+                              </div>
+                            </div>
+                            <div className="text-right">
                           <div className="text-[#f2a900] font-black text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                             {entry.totalScore.toFixed(1)}
                           </div>
@@ -699,8 +709,8 @@ export default function Home() {
                       <div className="text-4xl mb-2">🏆</div>
                       <p className="text-gray-400 text-sm">No players yet</p>
                       <p className="text-gray-500 text-xs">Be the first to register a lineup!</p>
-                    </div>
-                  )}
+                  </div>
+                )}
                 </div>
               </div>
 
@@ -735,7 +745,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
+    </div>
     </ErrorBoundary>
   );
 }
