@@ -39,11 +39,11 @@ class NBAStatsService {
            (stats.to * 1);
   }
 
-  // Fetch player season averages from NBA API (2025-2026 season)
-  async fetchPlayerSeasonAverages(nbaPlayerId) {
+  // Fetch player weekly stats from NBA API (2025-2026 season)
+  async fetchPlayerWeeklyStats(nbaPlayerId) {
     try {
       const season = '2025-26'; // Current NBA season
-      const url = `https://stats.nba.com/stats/playerdashboardbyyearoveryear?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerID=${nbaPlayerId}&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=Regular%20Season&ShotClockRange=&VsConference=&VsDivision=`;
+      const url = `https://stats.nba.com/stats/playerdashboardbyyearoveryear?DateFrom=&DateTo=&GameSegment=&LastNGames=7&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerID=${nbaPlayerId}&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=Regular%20Season&ShotClockRange=&VsConference=&VsDivision=`;
       
       const response = await axios.get(url, {
         headers: {
@@ -62,12 +62,12 @@ class NBAStatsService {
       
       const data = response.data;
       if (data.resultSets && data.resultSets[0] && data.resultSets[0].rowSet.length > 0) {
-        const seasonStats = data.resultSets[0].rowSet[0];
+        const weeklyStats = data.resultSets[0].rowSet[0];
         const headers = data.resultSets[0].headers;
 
         const getStat = (header) => {
           const index = headers.indexOf(header);
-          return index !== -1 ? parseFloat(seasonStats[index]) || 0 : 0;
+          return index !== -1 ? parseFloat(weeklyStats[index]) || 0 : 0;
         };
 
         const stats = {
@@ -91,7 +91,7 @@ class NBAStatsService {
       }
       return null;
     } catch (error) {
-      console.error(`Error fetching season averages for player ${nbaPlayerId}:`, error.message);
+      console.error(`Error fetching weekly stats for player ${nbaPlayerId}:`, error.message);
       return null;
     }
   }
@@ -134,13 +134,13 @@ class NBAStatsService {
       return this.cachedStats;
     }
 
-    console.log('Fetching live NBA stats for 24-hour competition...');
+    console.log('Fetching weekly NBA stats for 24-hour competition...');
     const allPlayers = await pool.query('SELECT id, nba_id, name, team, position, salary FROM players');
     const liveStatsPromises = allPlayers.rows.map(async (player) => {
       let stats = null;
       
-      // Try to fetch 2025-2026 season averages from NBA API
-      stats = await this.fetchPlayerSeasonAverages(player.nba_id);
+      // Try to fetch weekly stats from NBA API (last 7 games)
+      stats = await this.fetchPlayerWeeklyStats(player.nba_id);
 
       if (stats) {
         // Update DB

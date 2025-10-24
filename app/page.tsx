@@ -257,22 +257,33 @@ export default function Home() {
     }
   };
 
-  // Daily Matchup System - ONLY real users vs real users
+  // Daily Matchup System - New opponent every 24 hours
   const generateDailyMatchup = (userWallet: string) => {
-    // Get all registered users (in a real app, this would come from a database)
+    // Get all registered users
     const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
     
-    // Filter out current user and get their profiles
+    // Filter out current user
     const otherUsers = allUsers.filter((user: string) => user !== userWallet);
     
     if (otherUsers.length === 0) {
-      // If no other users, return null - no mock opponents
-      return null;
+      return null; // No opponents available
     }
     
-    // Randomly select an opponent and get their username
-    const randomOpponentWallet = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+    // Get user's matchup history to avoid recent opponents
+    const matchupHistory = JSON.parse(localStorage.getItem(`matchupHistory_${userWallet}`) || '[]');
+    const recentOpponents = matchupHistory.slice(-3); // Last 3 opponents
+    
+    // Filter out recent opponents
+    const availableOpponents = otherUsers.filter(user => !recentOpponents.includes(user));
+    const opponentPool = availableOpponents.length > 0 ? availableOpponents : otherUsers;
+    
+    // Randomly select opponent
+    const randomOpponentWallet = opponentPool[Math.floor(Math.random() * opponentPool.length)];
     const opponentProfile = loadUserProfile(randomOpponentWallet);
+    
+    // Add to matchup history
+    matchupHistory.push(randomOpponentWallet);
+    localStorage.setItem(`matchupHistory_${userWallet}`, JSON.stringify(matchupHistory));
     
     return {
       opponent: opponentProfile ? opponentProfile.username : formatAddress(randomOpponentWallet),
@@ -316,24 +327,33 @@ export default function Home() {
     return totalScore;
   };
 
-  // Leaderboard functions
+  // Leaderboard functions - Accumulate points over time
   const updateLeaderboard = (walletAddress: string, score: number, isWin: boolean) => {
     const existingEntry = leaderboardData.find(entry => entry.wallet === walletAddress);
     if (existingEntry) {
+      // Accumulate points over time
       existingEntry.totalScore += score;
       existingEntry.wins += isWin ? 1 : 0;
       existingEntry.losses += isWin ? 0 : 1;
+      existingEntry.gamesPlayed += 1;
+      existingEntry.lastScore = score;
+      existingEntry.lastUpdate = new Date().toISOString();
     } else {
+      // New player entry
       leaderboardData.push({
         wallet: walletAddress,
         username: userProfile?.username || formatAddress(walletAddress),
         totalScore: score,
         wins: isWin ? 1 : 0,
         losses: isWin ? 0 : 1,
+        gamesPlayed: 1,
+        lastScore: score,
+        lastUpdate: new Date().toISOString(),
+        joinDate: new Date().toISOString()
       });
     }
     
-    // Sort by total score
+    // Sort by total accumulated score
     leaderboardData.sort((a, b) => b.totalScore - a.totalScore);
     setLeaderboardData([...leaderboardData]);
     
@@ -411,8 +431,18 @@ export default function Home() {
         shuffleOpponent(wallet.publicKey.toString());
       }
 
+      // Calculate team score using weekly NBA stats
       const currentTeamScore = calculateTeamScore();
-      alert(`Lineup registered successfully! Team Score: ${currentTeamScore.toFixed(1)} fantasy points`);
+      
+      // Update leaderboard with accumulated points
+      updateLeaderboard(wallet.publicKey.toString(), currentTeamScore, true);
+      
+      // Update user profile with win
+      updateUserProfile({ 
+        wins: (userProfile?.wins || 0) + 1 
+      });
+
+      alert(`Lineup registered successfully! Team Score: ${currentTeamScore.toFixed(1)} fantasy points added to leaderboard!`);
     } catch (error) {
       console.error('Error registering lineup:', error);
       alert('Failed to register lineup');
@@ -761,10 +791,11 @@ export default function Home() {
                           }`}>
                             {index + 1}
                 </div>
-                          <div>
-                            <div className="text-white font-bold text-sm">{entry.username}</div>
-                            <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
-                              </div>
+                        <div>
+                          <div className="text-white font-bold text-sm">{entry.username}</div>
+                          <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
+                          <div className="text-gray-500 text-xs">{entry.gamesPlayed || 0} games</div>
+                        </div>
                             </div>
                             <div className="text-right">
                           <div className="text-[#f2a900] font-black text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
