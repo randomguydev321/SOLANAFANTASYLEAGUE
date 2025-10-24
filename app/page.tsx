@@ -160,6 +160,23 @@ export default function Home() {
   const [tournamentResults, setTournamentResults] = useState<any[]>([]);
   const [userMatchup, setUserMatchup] = useState<any>(null);
   const [timeUntilDeadline, setTimeUntilDeadline] = useState<number>(0);
+  const [leaderboardData, setLeaderboardData] = useState<Array<{
+    walletAddress: string;
+    totalScore: number;
+    wins: number;
+    losses: number;
+    lastUpdated: string;
+  }>>([]);
+  const [userProfile, setUserProfile] = useState<{
+    username: string;
+    walletAddress: string;
+    joinDate: string;
+    totalGames: number;
+    wins: number;
+    losses: number;
+  } | null>(null);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [tempUsername, setTempUsername] = useState('');
   const SALARY_CAP = 20; // 20 tokens total
 
   // Set client-side flag to prevent hydration mismatches
@@ -169,6 +186,151 @@ export default function Home() {
 
   // Simple translation function - English only
   const t = (enText: string) => enText;
+
+  // Calculate fantasy points using Points League scoring system
+  const calculateFantasyPoints = (stats: PlayerStats): number => {
+    // Points League Formula: PTS×1 + REB×1.2 + AST×1.5 + STL×3 + BLK×3 + TO×(-1)
+    return stats.pts + (stats.reb * 1.2) + (stats.ast * 1.5) + (stats.stl * 3) + (stats.blk * 3) + (stats.to * -1);
+  };
+
+  // Calculate total team score for a lineup
+  const calculateTeamScore = (lineup: {PG: number | null, SG: number | null, SF: number | null, PF: number | null, C: number | null}): number => {
+    let totalScore = 0;
+    Object.values(lineup).forEach(playerId => {
+      if (playerId && playerStats[playerId]) {
+        totalScore += playerStats[playerId].fantasyPoints;
+      }
+    });
+    return Math.floor(totalScore);
+  };
+
+  // Update leaderboard with wallet performance
+  const updateLeaderboard = (walletAddress: string, score: number, won: boolean) => {
+    setLeaderboardData(prev => {
+      const existing = prev.find(entry => entry.walletAddress === walletAddress);
+      if (existing) {
+        return prev.map(entry => 
+          entry.walletAddress === walletAddress 
+            ? {
+                ...entry,
+                totalScore: entry.totalScore + score,
+                wins: won ? entry.wins + 1 : entry.wins,
+                losses: won ? entry.losses : entry.losses + 1,
+                lastUpdated: new Date().toISOString()
+              }
+            : entry
+        ).sort((a, b) => b.totalScore - a.totalScore);
+      } else {
+        const newEntry = {
+          walletAddress,
+          totalScore: score,
+          wins: won ? 1 : 0,
+          losses: won ? 0 : 1,
+          lastUpdated: new Date().toISOString()
+        };
+        return [...prev, newEntry].sort((a, b) => b.totalScore - a.totalScore);
+      }
+    });
+  };
+
+  // User Profile Management
+  const saveUserProfile = (username: string, walletAddress: string) => {
+    const profile = {
+      username,
+      walletAddress,
+      joinDate: new Date().toISOString(),
+      totalGames: 0,
+      wins: 0,
+      losses: 0
+    };
+    localStorage.setItem(`userProfile_${walletAddress}`, JSON.stringify(profile));
+    setUserProfile(profile);
+    setShowUsernameModal(false);
+    setTempUsername('');
+  };
+
+  const loadUserProfile = (walletAddress: string) => {
+    const saved = localStorage.getItem(`userProfile_${walletAddress}`);
+    if (saved) {
+      const profile = JSON.parse(saved);
+      setUserProfile(profile);
+      return profile;
+    }
+    return null;
+  };
+
+  const updateUserProfile = (walletAddress: string, won: boolean) => {
+    const profile = loadUserProfile(walletAddress);
+    if (profile) {
+      const updatedProfile = {
+        ...profile,
+        totalGames: profile.totalGames + 1,
+        wins: won ? profile.wins + 1 : profile.wins,
+        losses: won ? profile.losses : profile.losses + 1
+      };
+      localStorage.setItem(`userProfile_${walletAddress}`, JSON.stringify(updatedProfile));
+      setUserProfile(updatedProfile);
+    }
+  };
+
+  // Daily Matchup System
+  const generateDailyMatchup = (userWallet: string) => {
+    // Get all registered users (in a real app, this would come from a database)
+    const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    
+    // Filter out current user
+    const otherUsers = allUsers.filter((user: string) => user !== userWallet);
+    
+    if (otherUsers.length === 0) {
+      // If no other users, create a bot opponent
+      return {
+        opponent: 'Bot_Opponent_001',
+        opponentWallet: 'BotWallet_001',
+        isBot: true,
+        matchupId: `matchup_${Date.now()}`,
+        startTime: new Date().toISOString(),
+        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      };
+    }
+    
+    // Randomly select an opponent
+    const randomOpponent = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+    
+    return {
+      opponent: randomOpponent,
+      opponentWallet: randomOpponent,
+      isBot: false,
+      matchupId: `matchup_${Date.now()}`,
+      startTime: new Date().toISOString(),
+      endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+    };
+  };
+
+  const saveDailyMatchup = (userWallet: string, matchup: any) => {
+    const today = new Date().toDateString();
+    localStorage.setItem(`dailyMatchup_${userWallet}_${today}`, JSON.stringify(matchup));
+  };
+
+  const loadDailyMatchup = (userWallet: string) => {
+    const today = new Date().toDateString();
+    const saved = localStorage.getItem(`dailyMatchup_${userWallet}_${today}`);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return null;
+  };
+
+  // Initialize sample leaderboard data
+  useEffect(() => {
+    const sampleLeaderboard = [
+      { walletAddress: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU', totalScore: 245, wins: 8, losses: 2, lastUpdated: new Date().toISOString() },
+      { walletAddress: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM', totalScore: 238, wins: 7, losses: 3, lastUpdated: new Date().toISOString() },
+      { walletAddress: '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1', totalScore: 231, wins: 6, losses: 4, lastUpdated: new Date().toISOString() },
+      { walletAddress: '2QdhepnKRTLjjSqPL1PtKNwqrUkoLee5Gqs8bvZhRdMv', totalScore: 225, wins: 5, losses: 5, lastUpdated: new Date().toISOString() },
+      { walletAddress: '8UJgxaiQx5nTrdDgph3FjhGqZJ2dGqJ7KzKjKjKjKjKj', totalScore: 218, wins: 4, losses: 6, lastUpdated: new Date().toISOString() },
+    ];
+    setLeaderboardData(sampleLeaderboard);
+  }, []);
 
   // Real NBA player stats with fantasy scoring
   useEffect(() => {
@@ -284,18 +446,10 @@ export default function Home() {
       150: { pts: 16.5, reb: 7.9, ast: 2.4, stl: 0.6, blk: 2.3, to: 1.8, fantasyPoints: 0 }, // Chet Holmgren
     };
 
-    // Calculate fantasy points for each player
+    // Calculate fantasy points for each player using Points League scoring
     Object.keys(realPlayerStats).forEach(playerId => {
       const stats = realPlayerStats[parseInt(playerId)];
-        // Fantasy Points = PTS + (REB * 1.2) + (AST * 1.5) + (STL * 3) + (BLK * 3) + (TO * -1)
-      stats.fantasyPoints = Math.floor(
-        stats.pts + 
-        (stats.reb * 1.2) + 
-        (stats.ast * 1.5) + 
-        (stats.stl * 3) + 
-        (stats.blk * 3) + 
-        (stats.to * -1)
-      );
+      stats.fantasyPoints = Math.floor(calculateFantasyPoints(stats));
     });
 
     setPlayerStats(realPlayerStats);
@@ -316,7 +470,41 @@ export default function Home() {
   // Load data when wallet connects
   useEffect(() => {
     if (wallet.connected && wallet.publicKey) {
+      const walletAddress = wallet.publicKey.toString();
+      
+      // Check if this is a first-time user
+      const existingProfile = loadUserProfile(walletAddress);
+      
+      if (!existingProfile) {
+        // First-time user - show username modal
+        setShowUsernameModal(true);
+      } else {
+        // Existing user - load their profile and daily matchup
+        setUserProfile(existingProfile);
+        
+        // Check for today's matchup
+        let dailyMatchup = loadDailyMatchup(walletAddress);
+        if (!dailyMatchup) {
+          // Generate new daily matchup
+          dailyMatchup = generateDailyMatchup(walletAddress);
+          saveDailyMatchup(walletAddress, dailyMatchup);
+          
+          // Add user to registered users list
+          const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+          if (!registeredUsers.includes(walletAddress)) {
+            registeredUsers.push(walletAddress);
+            localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+          }
+        }
+        
+        setUserMatchup(dailyMatchup);
+      }
+      
       loadData();
+    } else {
+      // Wallet disconnected - clear user data
+      setUserProfile(null);
+      setUserMatchup(null);
     }
   }, [wallet.connected, wallet.publicKey]);
 
@@ -498,6 +686,9 @@ export default function Home() {
         return;
       }
       
+      // Calculate team score
+      const teamScore = calculateTeamScore(selectedByPosition);
+      
       const lineup = {
         PG: PG.toString(),
         SG: SG.toString(),
@@ -514,7 +705,7 @@ export default function Home() {
       );
       
       if (success) {
-        alert('✅ LINEUP REGISTERED! Tournament starts soon!');
+        alert(`✅ LINEUP REGISTERED! Your team score: ${teamScore} fantasy points`);
         // Refresh tournament data
         setCurrentTournament(tournamentService.getCurrentTournament());
         loadData();
@@ -555,6 +746,68 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative" style={{ background: '#0a0e27' }}>
+      {/* Username Selection Modal */}
+      {showUsernameModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="relative bg-[#0a0e27] border-4 border-[#f2a900] p-8 max-w-md w-full mx-4 transform -skew-x-3">
+            <div className="skew-x-3">
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4">🏀</div>
+                <h2 className="text-white font-black text-3xl uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                  Welcome to Solana Fantasy League!
+                </h2>
+                <p className="text-gray-300 text-sm">
+                  Choose your username to start competing daily
+                </p>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-white font-bold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={tempUsername}
+                  onChange={(e) => setTempUsername(e.target.value)}
+                  placeholder="Enter your username..."
+                  className="w-full px-4 py-3 bg-[#1a1f3a] border-2 border-[#f2a900] text-white placeholder-gray-400 focus:outline-none focus:border-white transition-colors"
+                  maxLength={20}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && tempUsername.trim()) {
+                      saveUserProfile(tempUsername.trim(), wallet.publicKey!.toString());
+                    }
+                  }}
+                />
+                <p className="text-gray-400 text-xs mt-1">
+                  Max 20 characters • This will be your display name
+                </p>
+              </div>
+              
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    if (tempUsername.trim()) {
+                      saveUserProfile(tempUsername.trim(), wallet.publicKey!.toString());
+                    }
+                  }}
+                  disabled={!tempUsername.trim()}
+                  className="flex-1 bg-[#f2a900] text-[#0a0e27] font-black py-3 px-6 border-2 border-white hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+                >
+                  START PLAYING
+                </button>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <p className="text-gray-400 text-xs">
+                  You'll be matched against random opponents every 24 hours
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="relative border-b-4 border-[#f2a900] shadow-2xl" style={{ 
         background: 'linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%)',
@@ -601,8 +854,17 @@ export default function Home() {
               {!wallet.connected ? (
                 <WalletMultiButton className="!bg-[#f2a900] !text-[#0a0e27] !font-black !text-lg !transform !-skew-x-6 !border-4 !border-white !shadow-xl hover:!scale-105 !transition-all !uppercase !tracking-wider !px-8 !py-3" />
               ) : (
-                <div className="px-6 py-3 bg-[#0a0e27] border-4 border-[#f2a900] transform -skew-x-6 shadow-xl">
-                  <p className="text-[#f2a900] font-mono text-sm font-bold skew-x-6">{formatAddress(wallet.publicKey?.toString() || '')}</p>
+                <div className="flex items-center gap-4">
+                  {userProfile && (
+                    <div className="px-4 py-2 bg-[#f2a900] border-2 border-white transform -skew-x-6 shadow-lg">
+                      <p className="text-[#0a0e27] font-black text-sm skew-x-6 uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                        👤 {userProfile.username}
+                      </p>
+                    </div>
+                  )}
+                  <div className="px-6 py-3 bg-[#0a0e27] border-4 border-[#f2a900] transform -skew-x-6 shadow-xl">
+                    <p className="text-[#f2a900] font-mono text-sm font-bold skew-x-6">{formatAddress(wallet.publicKey?.toString() || '')}</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -750,6 +1012,26 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
+            {/* Team Score */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-[#f2a900] transform -skew-x-3"></div>
+              <div className="relative bg-[#0a0e27] border-4 border-white p-6 transform -skew-x-3 hover:skew-x-3 transition-transform">
+                <div className="skew-x-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-4xl">🧮</div>
+                    <div className="px-2 py-1 font-bold text-xs bg-[#f2a900] text-[#0a0e27]">
+                      {selectedCount === 5 ? 'COMPLETE' : 'INCOMPLETE'}
+                    </div>
+                  </div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Team Score</p>
+                  <p className="text-3xl font-black text-white" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                    {selectedCount === 5 ? calculateTeamScore(selectedByPosition) : '--'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Fantasy Points</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* 3-Day Tournament */}
@@ -880,31 +1162,104 @@ export default function Home() {
               />
             </div>
 
-            {/* Right Sidebar - Live Games & Weekly Matchup */}
+            {/* Right Sidebar - Live Games, Weekly Matchup & Leaderboard */}
             <div className="space-y-6">
               <LiveGamesWidget />
               <WeeklyMatchup userAddress={wallet.publicKey?.toString() || ''} />
+              
+              {/* Leaderboard */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-[#f2a900] transform -skew-x-3"></div>
+                <div className="relative bg-[#0a0e27] border-4 border-white p-6 transform -skew-x-3">
+                  <div className="skew-x-3">
+                    <h3 className="text-white font-black text-2xl mb-4 uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                      🏆 Leaderboard
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      {leaderboardData.slice(0, 5).map((entry, index) => (
+                        <div key={entry.walletAddress} className={`flex items-center justify-between p-3 rounded-lg ${
+                          index === 0 ? 'bg-[#f2a900] text-[#0a0e27]' : 
+                          index === 1 ? 'bg-gray-300 text-gray-900' : 
+                          index === 2 ? 'bg-orange-300 text-orange-900' : 
+                          'bg-gray-700 text-white'
+                        }`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                              index === 0 ? 'bg-[#0a0e27] text-[#f2a900]' : 
+                              index === 1 ? 'bg-gray-900 text-gray-300' : 
+                              index === 2 ? 'bg-orange-900 text-orange-300' : 
+                              'bg-gray-900 text-gray-300'
+                            }`}>
+                              {index + 1}
+            </div>
+                            <div>
+                              <div className="font-bold text-sm">
+                                {formatAddress(entry.walletAddress)}
+                              </div>
+                              <div className="text-xs opacity-75">
+                                {entry.wins}W - {entry.losses}L
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                              {entry.totalScore}
+                            </div>
+                            <div className="text-xs opacity-75">PTS</div>
+                          </div>
+                        </div>
+                      ))}
+          </div>
+                    
+                    <div className="mt-4 text-center">
+                      <div className="text-white/60 text-xs">
+                        Top 5 wallets by total fantasy points
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Matchup Information */}
-          {wallet.connected && userMatchup && (
+          {/* Daily Matchup Information */}
+          {wallet.connected && userMatchup && userProfile && (
             <div className="mb-8">
               <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6 transform -skew-x-3">
                 <div className="skew-x-3">
                   <h3 className="text-[#f2a900] text-2xl font-black mb-4 text-center uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                    Your Matchup
+                    🏀 Daily Matchup
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  
+                  <div className="grid grid-cols-2 gap-6 mb-4">
                     <div className="text-center">
-                      <div className="text-white font-mono text-sm mb-2">You</div>
-                      <div className="text-[#f2a900] font-bold text-lg">{formatAddress(wallet.publicKey?.toString() || '')}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-white font-mono text-sm mb-2">vs</div>
-                      <div className="text-[#f2a900] font-bold text-lg">
-                        {formatAddress(userMatchup.wallet1 === wallet.publicKey?.toString() ? userMatchup.wallet2 : userMatchup.wallet1)}
+                      <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">You</div>
+                      <div className="bg-[#f2a900] text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                        {userProfile.username}
                       </div>
+                      <div className="text-gray-400 text-xs mt-1">
+                        {userProfile.wins}W - {userProfile.losses}L
+                      </div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">vs</div>
+                      <div className="bg-white text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                        {userMatchup.isBot ? userMatchup.opponent : formatAddress(userMatchup.opponentWallet)}
+                      </div>
+                      <div className="text-gray-400 text-xs mt-1">
+                        {userMatchup.isBot ? 'Bot Opponent' : 'Random Player'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-gray-300 text-sm mb-2">
+                      Matchup expires in: <span className="text-[#f2a900] font-bold">{Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m</span>
+                    </div>
+                    <div className="text-gray-400 text-xs">
+                      New matchup every 24 hours
                     </div>
                   </div>
                 </div>
