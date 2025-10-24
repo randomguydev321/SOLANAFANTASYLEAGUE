@@ -32,8 +32,17 @@ interface BasketballCourtProps {
     C: number | null;
   };
   onSelectPlayer: (playerId: number, position: 'PG' | 'SG' | 'SF' | 'PF' | 'C') => void;
+  onRemovePlayer?: (position: 'PG' | 'SG' | 'SF' | 'PF' | 'C') => void;
   usedSalary: number;
   salaryCap: number;
+  isLocked?: boolean;
+  opponentTeam?: {
+    PG: number | null;
+    SG: number | null;
+    SF: number | null;
+    PF: number | null;
+    C: number | null;
+  } | null;
 }
 
 // Real NBA Season Averages 2023-24 (Top Players)
@@ -92,8 +101,11 @@ export default function BasketballCourt({
   playerStats, 
   selectedByPosition, 
   onSelectPlayer, 
+  onRemovePlayer,
   usedSalary, 
-  salaryCap 
+  salaryCap,
+  isLocked = false,
+  opponentTeam = null
 }: BasketballCourtProps) {
   const [activePosition, setActivePosition] = useState<'PG' | 'SG' | 'SF' | 'PF' | 'C'>('PG');
   const [showPlayerList, setShowPlayerList] = useState(true);
@@ -342,6 +354,17 @@ export default function BasketballCourt({
                               <div className="text-blue-600 font-black text-sm mb-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>PG</div>
                               <div className="text-gray-900 font-black text-sm leading-tight" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{player.name.split(' ').pop()}</div>
                               {stats && <div className="text-blue-600 font-black text-2xl mt-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>}
+                              {!isLocked && onRemovePlayer && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemovePlayer('PG');
+                                  }}
+                                  className="mt-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              )}
                             </div>
                           </>
                         );
@@ -397,6 +420,17 @@ export default function BasketballCourt({
                               <div className="text-green-600 font-black text-sm mb-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>SG</div>
                               <div className="text-gray-900 font-black text-sm leading-tight" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{player.name.split(' ').pop()}</div>
                               {stats && <div className="text-green-600 font-black text-2xl mt-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>}
+                              {!isLocked && onRemovePlayer && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemovePlayer('SG');
+                                  }}
+                                  className="mt-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              )}
                             </div>
                           </>
                         );
@@ -452,6 +486,17 @@ export default function BasketballCourt({
                               <div className="text-purple-600 font-black text-sm mb-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>SF</div>
                               <div className="text-gray-900 font-black text-sm leading-tight" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{player.name.split(' ').pop()}</div>
                               {stats && <div className="text-purple-600 font-black text-2xl mt-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>}
+                              {!isLocked && onRemovePlayer && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemovePlayer('SF');
+                                  }}
+                                  className="mt-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              )}
                             </div>
                           </>
                         );
@@ -507,6 +552,17 @@ export default function BasketballCourt({
                               <div className="text-orange-600 font-black text-sm mb-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>PF</div>
                               <div className="text-gray-900 font-black text-sm leading-tight" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{player.name.split(' ').pop()}</div>
                               {stats && <div className="text-orange-600 font-black text-2xl mt-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>}
+                              {!isLocked && onRemovePlayer && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemovePlayer('PF');
+                                  }}
+                                  className="mt-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              )}
                             </div>
                           </>
                         );
@@ -562,6 +618,17 @@ export default function BasketballCourt({
                               <div className="text-red-600 font-black text-sm mb-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>C</div>
                               <div className="text-gray-900 font-black text-sm leading-tight" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{player.name.split(' ').pop()}</div>
                               {stats && <div className="text-red-600 font-black text-2xl mt-1" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>}
+                              {!isLocked && onRemovePlayer && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemovePlayer('C');
+                                  }}
+                                  className="mt-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              )}
                             </div>
                           </>
                         );

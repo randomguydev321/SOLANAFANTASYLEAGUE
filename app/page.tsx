@@ -94,6 +94,11 @@ export default function Home() {
   // Leaderboard state
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   
+  // Team locking state
+  const [isTeamLocked, setIsTeamLocked] = useState(false);
+  const [teamLockData, setTeamLockData] = useState<any>(null);
+  const [opponentTeam, setOpponentTeam] = useState<Lineup | null>(null);
+  
   // Lineup state
   const [lineup, setLineup] = useState<Lineup>({
     PG: null,
@@ -373,6 +378,19 @@ export default function Home() {
     }
   };
 
+  // Remove player from lineup
+  const removePlayer = (position: keyof Lineup) => {
+    if (isTeamLocked) {
+      alert('Team is locked for 24 hours. Cannot make changes.');
+      return;
+    }
+    
+    setLineup(prev => ({
+      ...prev,
+      [position]: null
+    }));
+  };
+
   const registerLineup = async () => {
     if (!wallet.connected || !wallet.publicKey) {
       alert('Please connect your wallet first');
@@ -401,12 +419,6 @@ export default function Home() {
       const tournamentService = TournamentService.getInstance();
       const currentTournament = tournamentService.getCurrentTournament();
       
-      // Register lineup for tournament
-      const totalSalary = positions.reduce((sum, playerId) => {
-        const player = players.find(p => p.id === playerId);
-        return sum + (player?.salary || 0);
-      }, 0);
-      
       const success = tournamentService.registerLineup(
         wallet.publicKey.toString(),
         currentTournament.id,
@@ -426,10 +438,21 @@ export default function Home() {
         localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
       }
 
-      // Shuffle opponent if mode is 'every-game'
-      if (shuffleMode === 'every-game') {
-        shuffleOpponent(wallet.publicKey.toString());
+      // Generate ONE random opponent for 24 hours
+      const matchup = generateDailyMatchup(wallet.publicKey.toString());
+      if (matchup) {
+        setUserMatchup(matchup);
+        saveMatchup(wallet.publicKey.toString(), matchup);
       }
+
+      // Lock team for 24 hours
+      const lockData = {
+        lineup: { ...lineup },
+        lockedAt: new Date().toISOString(),
+        unlockAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+        opponent: matchup?.opponentWallet || null
+      };
+      localStorage.setItem(`lockedTeam_${wallet.publicKey.toString()}`, JSON.stringify(lockData));
 
       // Calculate team score using weekly NBA stats
       const currentTeamScore = calculateTeamScore();
@@ -442,7 +465,7 @@ export default function Home() {
         wins: (userProfile?.wins || 0) + 1 
       });
 
-      alert(`Lineup registered successfully! Team Score: ${currentTeamScore.toFixed(1)} fantasy points added to leaderboard!`);
+      alert(`Lineup registered successfully! Team locked for 24 hours. Team Score: ${currentTeamScore.toFixed(1)} fantasy points added to leaderboard!`);
     } catch (error) {
       console.error('Error registering lineup:', error);
       alert('Failed to register lineup');
@@ -486,6 +509,42 @@ export default function Home() {
       }
     }
   }, [isClient]);
+
+  // Check for locked team and load opponent data
+  useEffect(() => {
+    if (isClient && wallet.publicKey) {
+      const lockKey = `lockedTeam_${wallet.publicKey.toString()}`;
+      const lockData = localStorage.getItem(lockKey);
+      
+      if (lockData) {
+        const parsed = JSON.parse(lockData);
+        const unlockTime = new Date(parsed.unlockAt);
+        const now = new Date();
+        
+        if (now < unlockTime) {
+          // Team is still locked
+          setIsTeamLocked(true);
+          setTeamLockData(parsed);
+          
+          // Load opponent's team if available
+          if (parsed.opponent) {
+            const opponentLockKey = `lockedTeam_${parsed.opponent}`;
+            const opponentData = localStorage.getItem(opponentLockKey);
+            if (opponentData) {
+              const opponentParsed = JSON.parse(opponentData);
+              setOpponentTeam(opponentParsed.lineup);
+            }
+          }
+        } else {
+          // Team is unlocked, clear lock data
+          localStorage.removeItem(lockKey);
+          setIsTeamLocked(false);
+          setTeamLockData(null);
+          setOpponentTeam(null);
+        }
+      }
+    }
+  }, [isClient, wallet.publicKey]);
 
   if (!isClient) {
     return (
@@ -693,16 +752,23 @@ export default function Home() {
                 playerStats={playerStats}
                 selectedByPosition={lineup}
                 onSelectPlayer={(playerId, position) => {
+                  if (isTeamLocked) {
+                    alert('Team is locked for 24 hours. Cannot make changes.');
+                    return;
+                  }
                   setLineup(prev => ({
                     ...prev,
                     [position]: playerId
                   }));
                 }}
+                onRemovePlayer={removePlayer}
                 usedSalary={Object.values(lineup).reduce((sum, playerId) => {
                   const player = players.find(p => p.id === playerId);
                   return sum + (player?.salary || 0);
                 }, 0)}
                 salaryCap={15}
+                isLocked={isTeamLocked}
+                opponentTeam={opponentTeam}
               />
 
               {/* Lineup Registration */}
@@ -753,7 +819,7 @@ export default function Home() {
                     </div>
             <button
               onClick={registerLineup}
-                      disabled={Object.values(lineup).some(pos => pos === null) || 
+                      disabled={isTeamLocked || Object.values(lineup).some(pos => pos === null) || 
                                Object.values(lineup).reduce((sum, playerId) => {
                                  const player = players.find(p => p.id === playerId);
                                  return sum + (player?.salary || 0);
@@ -761,7 +827,7 @@ export default function Home() {
                       className="bg-[#f2a900] text-[#0a0e27] px-6 py-3 font-black uppercase tracking-wider hover:bg-white transition-colors disabled:bg-gray-600 disabled:text-gray-400"
               style={{ fontFamily: 'Bebas Neue, sans-serif' }}
             >
-                      Register Lineup
+                      {isTeamLocked ? 'Team Locked (24h)' : 'Register Lineup'}
             </button>
                   </div>
                 </div>
@@ -795,7 +861,7 @@ export default function Home() {
                           <div className="text-white font-bold text-sm">{entry.username}</div>
                           <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
                           <div className="text-gray-500 text-xs">{entry.gamesPlayed || 0} games</div>
-                        </div>
+                              </div>
                             </div>
                             <div className="text-right">
                           <div className="text-[#f2a900] font-black text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
