@@ -668,6 +668,11 @@ export default function Home() {
                     [position]: playerId
                   }));
                 }}
+                usedSalary={Object.values(lineup).reduce((sum, playerId) => {
+                  const player = players.find(p => p.id === playerId);
+                  return sum + (player?.salary || 0);
+                }, 0)}
+                salaryCap={15}
               />
 
               {/* Lineup Registration */}
