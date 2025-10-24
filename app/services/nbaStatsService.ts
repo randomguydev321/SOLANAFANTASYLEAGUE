@@ -61,7 +61,7 @@ export class NBAStatsService {
            (ftMissed * -0.5);
   }
 
-  // Fetch live stats from NBA API (mock implementation)
+  // Fetch live stats from NBA API - NO MOCK DATA
   async getLiveStats(): Promise<NBAPlayerStats[]> {
     const now = Date.now();
     
@@ -71,87 +71,24 @@ export class NBAStatsService {
     }
 
     try {
-      // Mock live data - in production, replace with real NBA API
-      const liveStats: NBAPlayerStats[] = [
-        {
-          playerId: "1629029",
-          name: "LUKA DONCIC",
-          team: "MAVERICKS",
-          position: "PG",
-          salary: 5,
-          pts: 32.4,
-          reb: 8.2,
-          ast: 9.1,
-          stl: 1.4,
-          blk: 0.5,
-          to: 3.8,
-          fg: 12.1,
-          fga: 24.3,
-          ft: 6.8,
-          fta: 8.1,
-          fantasyPoints: this.calculateFantasyPoints({ pts: 32.4, reb: 8.2, ast: 9.1, stl: 1.4, blk: 0.5, to: 3.8, fg: 12.1, fga: 24.3, ft: 6.8, fta: 8.1 }),
-          gameDate: new Date().toISOString().split('T')[0],
-          opponent: "WARRIORS",
-          isPlaying: true
-        },
-        {
-          playerId: "201939",
-          name: "STEPHEN CURRY",
-          team: "WARRIORS",
-          position: "PG",
-          salary: 5,
-          pts: 28.7,
-          reb: 4.3,
-          ast: 6.8,
-          stl: 1.2,
-          blk: 0.3,
-          to: 3.1,
-          fg: 10.2,
-          fga: 20.1,
-          ft: 4.8,
-          fta: 5.2,
-          fantasyPoints: this.calculateFantasyPoints({ pts: 28.7, reb: 4.3, ast: 6.8, stl: 1.2, blk: 0.3, to: 3.1, fg: 10.2, fga: 20.1, ft: 4.8, fta: 5.2 }),
-          gameDate: new Date().toISOString().split('T')[0],
-          opponent: "MAVERICKS",
-          isPlaying: true
-        },
-        {
-          playerId: "1628983",
-          name: "SHAI GILGEOUS-ALEXANDER",
-          team: "THUNDER",
-          position: "PG",
-          salary: 5,
-          pts: 30.1,
-          reb: 5.5,
-          ast: 6.3,
-          stl: 1.3,
-          blk: 1.0,
-          to: 2.8,
-          fg: 11.4,
-          fga: 22.8,
-          ft: 6.1,
-          fta: 6.9,
-          fantasyPoints: this.calculateFantasyPoints({ pts: 30.1, reb: 5.5, ast: 6.3, stl: 1.3, blk: 1.0, to: 2.8, fg: 11.4, fga: 22.8, ft: 6.1, fta: 6.9 }),
-          gameDate: new Date().toISOString().split('T')[0],
-          opponent: "LAKERS",
-          isPlaying: true
-        },
-        // Add more players...
-      ];
-
-      // Update cache
-      this.cache.clear();
-      liveStats.forEach(player => {
-        this.cache.set(player.playerId, player);
-      });
-      this.lastUpdate = now;
-
-      return liveStats;
+      // Try to fetch from backend API first
+      const response = await fetch('http://localhost:3001/api/live-stats');
+      if (response.ok) {
+        const liveStats = await response.json();
+        // Cache the data
+        this.cache.clear();
+        liveStats.forEach((stat: NBAPlayerStats) => {
+          this.cache.set(stat.playerId, stat);
+        });
+        this.lastUpdate = now;
+        return liveStats;
+      }
     } catch (error) {
-      console.error('Error fetching live NBA stats:', error);
-      // Return cached data if available, otherwise empty array
-      return Array.from(this.cache.values());
+      console.log('Backend API not available, using empty stats');
     }
+
+    // Return empty array if no API available - NO MOCK DATA
+    return [];
   }
 
   // Get stats for specific player

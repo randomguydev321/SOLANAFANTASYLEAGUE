@@ -24,23 +24,9 @@ export default function ThreeDayTournament({ userAddress, userScore }: Tournamen
   const [timeRemaining, setTimeRemaining] = useState('');
 
   useEffect(() => {
-    // Simulate matchmaking - in production, this would come from smart contract
-    const mockMatch: Match = {
-      round: 1,
-      opponent: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      opponentScore: Math.floor(Math.random() * 500) + 200,
-      yourScore: userScore,
-      result: 'pending',
-      endsAt: Date.now() + (3 * 24 * 60 * 60 * 1000) // 3 days from now
-    };
-    
-    setCurrentMatch(mockMatch);
-    
-    // Mock record
-    setRecord({
-      wins: Math.floor(Math.random() * 5),
-      losses: Math.floor(Math.random() * 3)
-    });
+    // No mock data - real tournament system only
+    setCurrentMatch(null);
+    setRecord({ wins: 0, losses: 0 });
   }, [userAddress, userScore]);
 
   useEffect(() => {

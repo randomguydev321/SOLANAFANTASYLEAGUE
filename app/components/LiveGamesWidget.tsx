@@ -48,29 +48,8 @@ export default function LiveGamesWidget({ className = '' }: LiveGamesWidgetProps
       }
     } catch (error) {
       console.error('Error fetching live games:', error);
-      // Fallback to mock data if API fails
-      setGames([
-        {
-          gameId: '1',
-          homeTeam: { teamId: 1610612737, teamName: 'Atlanta Hawks', teamTricode: 'ATL', score: 112 },
-          awayTeam: { teamId: 1610612738, teamName: 'Boston Celtics', teamTricode: 'BOS', score: 108 },
-          gameStatus: 2,
-          gameStatusText: 'LIVE',
-          period: 4,
-          gameClock: '2:34',
-          startTimeUTC: new Date().toISOString()
-        },
-        {
-          gameId: '2',
-          homeTeam: { teamId: 1610612747, teamName: 'Los Angeles Lakers', teamTricode: 'LAL', score: 95 },
-          awayTeam: { teamId: 1610612744, teamName: 'Golden State Warriors', teamTricode: 'GSW', score: 98 },
-          gameStatus: 2,
-          gameStatusText: 'LIVE',
-          period: 3,
-          gameClock: '8:45',
-          startTimeUTC: new Date().toISOString()
-        }
-      ]);
+      // No mock data - return empty array
+      setGames([]);
       setLastUpdate(new Date());
     } finally {
       setLoading(false);

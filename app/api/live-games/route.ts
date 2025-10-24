@@ -52,61 +52,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fallback to mock data
+    // No mock data - return empty games array
     return NextResponse.json({
       success: true,
-      games: [
-        {
-          gameId: '1',
-          homeTeam: { teamId: 1610612737, teamName: 'Atlanta Hawks', teamTricode: 'ATL', score: 112 },
-          awayTeam: { teamId: 1610612738, teamName: 'Boston Celtics', teamTricode: 'BOS', score: 108 },
-          gameStatus: 2,
-          gameStatusText: 'LIVE',
-          period: 4,
-          gameClock: '2:34',
-          startTimeUTC: new Date().toISOString()
-        },
-        {
-          gameId: '2',
-          homeTeam: { teamId: 1610612747, teamName: 'Los Angeles Lakers', teamTricode: 'LAL', score: 95 },
-          awayTeam: { teamId: 1610612744, teamName: 'Golden State Warriors', teamTricode: 'GSW', score: 98 },
-          gameStatus: 2,
-          gameStatusText: 'LIVE',
-          period: 3,
-          gameClock: '8:45',
-          startTimeUTC: new Date().toISOString()
-        }
-      ]
+      games: []
     });
 
   } catch (error) {
     console.error('Error fetching live games:', error);
     
-    // Return mock data on error
+    // Return empty games array on error - no mock data
     return NextResponse.json({
       success: true,
-      games: [
-        {
-          gameId: '1',
-          homeTeam: { teamId: 1610612737, teamName: 'Atlanta Hawks', teamTricode: 'ATL', score: 112 },
-          awayTeam: { teamId: 1610612738, teamName: 'Boston Celtics', teamTricode: 'BOS', score: 108 },
-          gameStatus: 2,
-          gameStatusText: 'LIVE',
-          period: 4,
-          gameClock: '2:34',
-          startTimeUTC: new Date().toISOString()
-        },
-        {
-          gameId: '2',
-          homeTeam: { teamId: 1610612747, teamName: 'Los Angeles Lakers', teamTricode: 'LAL', score: 95 },
-          awayTeam: { teamId: 1610612744, teamName: 'Golden State Warriors', teamTricode: 'GSW', score: 98 },
-          gameStatus: 2,
-          gameStatusText: 'LIVE',
-          period: 3,
-          gameClock: '8:45',
-          startTimeUTC: new Date().toISOString()
-        }
-      ]
+      games: []
     });
   }
 }
