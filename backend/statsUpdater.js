@@ -33,9 +33,9 @@ class StatsUpdater {
   setupCronJobs() {
     console.log('Setting up NBA stats update cron jobs...');
     
-    // Update season averages weekly on Sundays at 6 AM EST
-    cron.schedule('0 6 * * 0', async () => {
-      console.log('Running weekly NBA season averages update...');
+    // Update live stats daily at 6 AM EST
+    cron.schedule('0 6 * * *', async () => {
+      console.log('Running daily NBA live stats update...');
       await this.updateStats();
     }, {
       timezone: "America/New_York"

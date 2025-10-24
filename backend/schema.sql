@@ -117,12 +117,12 @@ INSERT INTO players (id, name, team, position, salary, nba_id, photo) VALUES
 (121, 'NIKOLA JOKIC', 'NUGGETS', 'C', 5, '203999', 'https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png')
 ON CONFLICT (id) DO NOTHING;
 
--- Insert FREE 3-day tournament
+-- Insert FREE 24-hour tournament (Everyone vs Everyone)
 INSERT INTO tournaments (id, name, start_time, end_time, lineup_deadline, entry_fee, prize_pool, status) VALUES
-('tournament_3day_' || EXTRACT(EPOCH FROM NOW())::bigint, 
- '3-Day NBA Fantasy League', 
+('tournament_24h_' || EXTRACT(EPOCH FROM NOW())::bigint, 
+ '24-Hour NBA Fantasy League - Everyone vs Everyone', 
  NOW() + INTERVAL '1 hour',
- NOW() + INTERVAL '73 hours', -- 3 days
+ NOW() + INTERVAL '25 hours', -- 24 hours
  NOW() + INTERVAL '-1 hour', -- 1 hour ago (deadline passed)
  0, -- FREE entry
  0, 

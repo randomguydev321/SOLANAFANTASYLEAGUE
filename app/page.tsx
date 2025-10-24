@@ -112,7 +112,7 @@ export default function Home() {
   useEffect(() => {
     const loadPlayers = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/players');
+        const response = await fetch('/api/players');
         if (response.ok) {
           const playersData = await response.json();
           setPlayers(playersData);
@@ -153,7 +153,7 @@ export default function Home() {
   useEffect(() => {
     const loadLiveStats = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/live-stats');
+        const response = await fetch('/api/live-stats');
         if (response.ok) {
           const stats = await response.json();
           setLiveStats(stats);

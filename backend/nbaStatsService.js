@@ -128,13 +128,13 @@ class NBAStatsService {
   async getLiveStats(forceRefresh = false) {
     const now = Date.now();
     const hasLiveGames = (await this.getLiveGameStatus()).some(game => game.gameStatus === 2);
-    const currentCacheDuration = 7 * 24 * 60 * 60 * 1000; // 7 days for season averages
+    const currentCacheDuration = 24 * 60 * 60 * 1000; // 24 hours for live stats
 
     if (!forceRefresh && this.cachedStats.length > 0 && (now - this.lastFetchTime < currentCacheDuration)) {
       return this.cachedStats;
     }
 
-    console.log('Fetching 2025-2026 NBA season averages...');
+    console.log('Fetching live NBA stats for 24-hour competition...');
     const allPlayers = await pool.query('SELECT id, nba_id, name, team, position, salary FROM players');
     const liveStatsPromises = allPlayers.rows.map(async (player) => {
       let stats = null;
