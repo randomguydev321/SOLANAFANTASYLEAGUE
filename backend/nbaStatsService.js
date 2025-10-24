@@ -7,23 +7,21 @@ import axios from 'axios';
 dotenv.config();
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  connectionString: process.env.DATABASE_URL || 'postgresql://solanafantasyleague_user:N2JoE73LIqQUZmznhtyndIUtE6QY6H9o@dpg-d3trvdu3jp1c7399behg-a.frankfurt-postgres.render.com/solanafantasyleague',
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 class NBAStatsService {
-  private static instance;
-  private cachedStats = [];
-  private lastFetchTime = 0;
-  private readonly CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for live games, 5 minutes otherwise
-  private readonly FULL_REFRESH_DURATION = 60 * 60 * 1000; // 1 hour for full refresh
-  private lastFullRefreshTime = 0;
+  static instance;
+  cachedStats = [];
+  lastFetchTime = 0;
+  CACHE_DURATION = 2 * 60 * 1000; // 2 minutes for live games, 5 minutes otherwise
+  FULL_REFRESH_DURATION = 60 * 60 * 1000; // 1 hour for full refresh
+  lastFullRefreshTime = 0;
 
-  private constructor() {}
+  constructor() {}
 
-  public static getInstance() {
+  static getInstance() {
     if (!NBAStatsService.instance) {
       NBAStatsService.instance = new NBAStatsService();
     }

@@ -17,10 +17,8 @@ app.use(express.json());
 
 // PostgreSQL connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://solanafantasyleague_user:N2JoE73LIqQUZmznhtyndIUtE6QY6H9o@dpg-d3trvdu3jp1c7399behg-a.frankfurt-postgres.render.com/solanafantasyleague',
-  ssl: {
-    rejectUnauthorized: false
-  }
+  connectionString: 'postgresql://solanafantasyleague_user:N2JoE73LIqQUZmznhtyndIUtE6QY6H9o@dpg-d3trvdu3jp1c7399behg-a.frankfurt-postgres.render.com/solanafantasyleague',
+  ssl: false
 });
 
 // Initialize services
@@ -179,20 +177,19 @@ app.get('/api/player-stats/:playerId', async (req, res) => {
   }
 });
 
-// Get all player stats
-app.get('/api/player-stats', async (req, res) => {
+// Get all players
+app.get('/api/players', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT ps.*, p.name, p.team, p.position 
-      FROM player_stats ps 
-      JOIN players p ON ps.player_id = p.id 
-      WHERE ps.game_date = CURRENT_DATE
-      ORDER BY ps.fantasy_points DESC
+      SELECT p.*, ps.pts, ps.reb, ps.ast, ps.stl, ps.blk, ps."to" as turnovers, ps.fgm, ps.fga, ps.ftm, ps.fta, ps.fantasy_points, ps.is_playing
+      FROM players p
+      LEFT JOIN player_stats ps ON p.id = ps.player_id AND ps.game_date = CURRENT_DATE
+      ORDER BY p.position, p.salary DESC, p.name
     `);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching all player stats:', error);
-    res.status(500).json({ error: 'Failed to fetch player stats' });
+    console.error('Error fetching players:', error);
+    res.status(500).json({ error: 'Failed to fetch players' });
   }
 });
 
