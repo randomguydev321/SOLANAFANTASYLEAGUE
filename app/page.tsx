@@ -191,7 +191,7 @@ export default function Home() {
       loadLiveStats();
       // Refresh every 2 minutes
       const interval = setInterval(loadLiveStats, 2 * 60 * 1000);
-      return () => clearInterval(interval);
+    return () => clearInterval(interval);
     }
   }, [isClient]);
 
@@ -230,7 +230,7 @@ export default function Home() {
         const matchup = loadMatchup(walletAddress);
         if (matchup) {
           setUserMatchup(matchup);
-        } else {
+    } else {
           const newMatchup = generateDailyMatchup(walletAddress);
           if (newMatchup) {
             setUserMatchup(newMatchup);
@@ -438,21 +438,33 @@ export default function Home() {
         localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
       }
 
-      // Generate ONE random opponent for 24 hours
-      const matchup = generateDailyMatchup(wallet.publicKey.toString());
-      if (matchup) {
-        setUserMatchup(matchup);
-        saveMatchup(wallet.publicKey.toString(), matchup);
-      }
-
-      // Lock team for 24 hours
+      // Lock team first - opponent will be assigned later
       const lockData = {
         lineup: { ...lineup },
         lockedAt: new Date().toISOString(),
         unlockAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
-        opponent: matchup?.opponentWallet || null
+        opponent: null, // No opponent yet - waiting for match
+        status: 'waiting_for_opponent' // Status: waiting_for_opponent, matched, completed
       };
       localStorage.setItem(`lockedTeam_${wallet.publicKey.toString()}`, JSON.stringify(lockData));
+
+      // Try to find an opponent immediately
+      const matchup = generateDailyMatchup(wallet.publicKey.toString());
+      if (matchup) {
+        // Update lock data with opponent
+        const updatedLockData = {
+          ...lockData,
+          opponent: matchup.opponentWallet,
+          status: 'matched'
+        };
+        localStorage.setItem(`lockedTeam_${wallet.publicKey.toString()}`, JSON.stringify(updatedLockData));
+        
+        setUserMatchup(matchup);
+        saveMatchup(wallet.publicKey.toString(), matchup);
+      } else {
+        // No opponent available yet - keep waiting status
+        setUserMatchup(null);
+      }
 
       // Calculate team score using weekly NBA stats
       const currentTeamScore = calculateTeamScore();
@@ -465,7 +477,11 @@ export default function Home() {
         wins: (userProfile?.wins || 0) + 1 
       });
 
-      alert(`Lineup registered successfully! Team locked for 24 hours. Team Score: ${currentTeamScore.toFixed(1)} fantasy points added to leaderboard!`);
+      if (matchup) {
+        alert(`Lineup registered successfully! Team locked and matched with opponent: ${matchup.opponent}. Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
+      } else {
+        alert(`Lineup registered successfully! Team locked and waiting for opponent... Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
+      }
     } catch (error) {
       console.error('Error registering lineup:', error);
       alert('Failed to register lineup');
@@ -526,14 +542,17 @@ export default function Home() {
           setIsTeamLocked(true);
           setTeamLockData(parsed);
           
-          // Load opponent's team if available
-          if (parsed.opponent) {
+          // Load opponent's team if matched
+          if (parsed.opponent && parsed.status === 'matched') {
             const opponentLockKey = `lockedTeam_${parsed.opponent}`;
             const opponentData = localStorage.getItem(opponentLockKey);
             if (opponentData) {
               const opponentParsed = JSON.parse(opponentData);
               setOpponentTeam(opponentParsed.lineup);
             }
+          } else {
+            // No opponent yet or still waiting
+            setOpponentTeam(null);
           }
         } else {
           // Team is unlocked, clear lock data
@@ -547,13 +566,13 @@ export default function Home() {
   }, [isClient, wallet.publicKey]);
 
   if (!isClient) {
-    return (
+  return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#1a1f3a] to-[#0a0e27] flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🏀</div>
           <div className="text-white text-2xl font-bold">Loading NBA Fantasy League...</div>
-        </div>
-      </div>
+                  </div>
+                </div>
     );
   }
 
@@ -578,19 +597,19 @@ export default function Home() {
                 <div className="text-white font-bold text-sm uppercase tracking-wider">Salary Cap</div>
                 <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   15 Tokens
-                  </div>
-              </div>
+                        </div>
+                        </div>
               
               <div className="text-center">
                 <div className="text-white font-bold text-sm uppercase tracking-wider">Team Score</div>
                 <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   {calculateTeamScore().toFixed(1)}
-                </div>
+                  </div>
               </div>
               
               <WalletMultiButton />
-            </div>
-          </div>
+                </div>
+                </div>
         </header>
 
         {/* Username Modal */}
@@ -626,7 +645,7 @@ export default function Home() {
               >
                   Cancel
               </button>
-              </div>
+                </div>
             </div>
           </div>
         )}
@@ -643,18 +662,18 @@ export default function Home() {
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-[#f2a900] text-2xl font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                           🏀 Live Matchup
-                        </h3>
+                  </h3>
                         <div className="flex items-center gap-2">
-                          <button
+              <button 
                             onClick={() => shuffleOpponent(wallet.publicKey!.toString())}
                             className="bg-[#f2a900] text-[#0a0e27] px-3 py-1 text-xs font-black uppercase tracking-wider hover:bg-white transition-colors"
-                            style={{ fontFamily: 'Bebas Neue, sans-serif' }}
-                          >
+                style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+              >
                             🔄 Shuffle
-                          </button>
-                    </div>
-                  </div>
-
+              </button>
+              </div>
+            </div>
+            
                       {userMatchup ? (
                         // Show matchup when real opponent is available
                         <>
@@ -663,46 +682,46 @@ export default function Home() {
                               <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">You</div>
                               <div className="bg-[#f2a900] text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                                 {userProfile.username}
-                          </div>
+                  </div>
                               <div className="text-gray-400 text-xs mt-1">
                                 {userProfile.wins}W - {userProfile.losses}L
-                        </div>
+                </div>
                               <div className="text-[#f2a900] text-xs font-bold mt-1">
                                 Total: {userProfile.wins + userProfile.losses} Games
-                      </div>
-                    </div>
-
+              </div>
+            </div>
+            
                             <div className="text-center">
                               <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">vs</div>
                               <div className="bg-white text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                                 {userMatchup.opponent}
-                              </div>
+                    </div>
                               <div className="text-gray-400 text-xs mt-1">
                                 Real Solana User
-                          </div>
+                  </div>
                               <div className="text-gray-400 text-xs">
                                 Random Opponent
-                        </div>
-                      </div>
-                    </div>
+                </div>
+              </div>
+            </div>
 
                           <div className="text-center mb-4">
                             <div className="text-gray-300 text-sm mb-2">
                               Matchup expires in: <span className="text-[#f2a900] font-bold">{Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m</span>
-                            </div>
+                    </div>
                             <div className="text-gray-400 text-xs">
                               {shuffleMode === 'every-game' ? 'New opponent every game' : 
                                shuffleMode === 'hourly' ? 'New opponent every hour' : 
                                'New random opponent every 24 hours'}
-                            </div>
-                          </div>
+                  </div>
+                </div>
                           
                           {/* Shuffle Mode Selector */}
                           <div className="border-t border-gray-600 pt-4">
                             <div className="text-center mb-3">
                               <div className="text-white font-bold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                                 Shuffle Mode
-                        </div>
+              </div>
                               <div className="flex gap-2 justify-center">
                                 {(['every-game', 'hourly', 'daily'] as const).map((mode) => (
                                   <button
@@ -719,8 +738,8 @@ export default function Home() {
                                      mode === 'hourly' ? 'Hourly' : 'Daily'}
                                   </button>
                                 ))}
-                      </div>
-                    </div>
+            </div>
+          </div>
                   </div>
                         </>
                       ) : (
@@ -735,15 +754,15 @@ export default function Home() {
                           </p>
                           <div className="text-gray-400 text-xs mb-4">
                             No bots or fake opponents - only real wallet vs wallet matchups!
-                          </div>
+                    </div>
                           <div className="bg-[#f2a900] text-[#0a0e27] px-4 py-2 rounded-lg font-black text-sm inline-block" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                             {userProfile.username} - Ready to Compete!
-                          </div>
+                  </div>
                         </div>
                       )}
+                      </div>
                     </div>
                   </div>
-                </div>
               )}
 
               {/* Basketball Court */}
@@ -782,9 +801,32 @@ export default function Home() {
                       <div className="text-white font-bold text-sm">Team Score</div>
                       <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                         {calculateTeamScore().toFixed(1)}
-            </div>
-            </div>
-          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  {/* Team Status Display */}
+                  {isTeamLocked && (
+                    <div className="mb-4 p-4 bg-[#0a0e27] border-2 border-[#f2a900] rounded-lg">
+                      <div className="text-center">
+                        <div className="text-[#f2a900] font-black text-lg mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                          {teamLockData?.status === 'waiting_for_opponent' ? '⏳ WAITING FOR OPPONENT' : 
+                           teamLockData?.status === 'matched' ? '✅ OPPONENT MATCHED' : 
+                           '🔒 TEAM LOCKED'}
+                        </div>
+                        {teamLockData?.status === 'waiting_for_opponent' && (
+                          <div className="text-white text-sm">
+                            Your team is locked and waiting for a random opponent to be assigned...
+                          </div>
+                        )}
+                        {teamLockData?.status === 'matched' && userMatchup && (
+                          <div className="text-white text-sm">
+                            Matched with: <span className="text-[#f2a900] font-bold">{userMatchup.opponent}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-5 gap-4 mb-4">
                     {Object.entries(lineup).map(([position, playerId]) => {
@@ -798,16 +840,16 @@ export default function Home() {
                                 <div className="text-white text-xs font-bold">{player.name}</div>
                                 <div className="text-gray-400 text-xs">{player.team}</div>
                                 <div className="text-[#f2a900] text-xs font-bold">{player.salary} tokens</div>
-                              </div>
+                          </div>
                             ) : (
                               <div className="text-gray-500 text-xs">Empty</div>
                             )}
-                          </div>
                         </div>
+                      </div>
                       );
                     })}
-                  </div>
-                  
+                    </div>
+
                   <div className="flex items-center justify-between">
                     <div className="text-sm">
                       <div className="text-gray-300">Total Salary: <span className="text-white font-bold">
@@ -816,7 +858,7 @@ export default function Home() {
                           return sum + (player?.salary || 0);
                         }, 0)}/15 tokens
                       </span></div>
-                    </div>
+                          </div>
             <button
               onClick={registerLineup}
                       disabled={isTeamLocked || Object.values(lineup).some(pos => pos === null) || 
@@ -827,15 +869,19 @@ export default function Home() {
                       className="bg-[#f2a900] text-[#0a0e27] px-6 py-3 font-black uppercase tracking-wider hover:bg-white transition-colors disabled:bg-gray-600 disabled:text-gray-400"
               style={{ fontFamily: 'Bebas Neue, sans-serif' }}
             >
-                      {isTeamLocked ? 'Team Locked (24h)' : 'Register Lineup'}
+                      {isTeamLocked ? 
+                        (teamLockData?.status === 'waiting_for_opponent' ? 'Waiting for Opponent...' : 
+                         teamLockData?.status === 'matched' ? 'Team Locked (24h)' : 
+                         'Team Locked (24h)') : 
+                        'Register Lineup'}
             </button>
-                  </div>
-                </div>
+                        </div>
+                      </div>
               )}
 
               {/* Live Games Widget */}
               <LiveGamesWidget />
-          </div>
+                  </div>
 
             {/* Sidebar */}
             <div className="space-y-8">
@@ -856,30 +902,30 @@ export default function Home() {
                             'bg-gray-600 text-white'
                           }`}>
                             {index + 1}
-                </div>
+                  </div>
                         <div>
                           <div className="text-white font-bold text-sm">{entry.username}</div>
                           <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
                           <div className="text-gray-500 text-xs">{entry.gamesPlayed || 0} games</div>
-                              </div>
-                            </div>
+                </div>
+              </div>
                             <div className="text-right">
                           <div className="text-[#f2a900] font-black text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                             {entry.totalScore.toFixed(1)}
-                          </div>
+            </div>
                           <div className="text-gray-400 text-xs">points</div>
-                        </div>
-                      </div>
+          </div>
+            </div>
                     ))
                   ) : (
                     <div className="text-center py-8">
                       <div className="text-4xl mb-2">🏆</div>
                       <p className="text-gray-400 text-sm">No players yet</p>
                       <p className="text-gray-500 text-xs">Be the first to register a lineup!</p>
-                  </div>
+            </div>
                 )}
-                </div>
-              </div>
+          </div>
+          </div>
 
               {/* Tournament Info */}
               {currentTournament && (
@@ -891,28 +937,28 @@ export default function Home() {
                     <div className="flex justify-between">
                       <span className="text-gray-300">Name:</span>
                       <span className="text-white font-bold">{currentTournament.name}</span>
-                    </div>
+                </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Entry Fee:</span>
                       <span className="text-green-500 font-bold">FREE</span>
-                    </div>
+                  </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Participants:</span>
                       <span className="text-white font-bold">{currentTournament.participants.length}</span>
-                    </div>
+                              </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Time Left:</span>
                       <span className="text-[#f2a900] font-bold">
                         {Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m
-                      </span>
-                    </div>
+                              </span>
+                            </div>
+                            </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
-    </div>
     </ErrorBoundary>
   );
 }
