@@ -318,17 +318,30 @@ export default function Home() {
   useEffect(() => {
     const loadLiveData = async () => {
       try {
-        const statsService = NBAStatsService.getInstance();
+        // Try to load live stats from backend API first
+        try {
+          const response = await fetch('http://localhost:3001/api/live-stats');
+          if (response.ok) {
+            const liveStats = await response.json();
+            setLiveStats(liveStats);
+            console.log('✅ Loaded live stats from backend API');
+          } else {
+            throw new Error('Backend API not available');
+          }
+        } catch (apiError) {
+          console.log('⚠️ Backend API not available, using local service');
+          // Fallback to local service
+          const statsService = NBAStatsService.getInstance();
+          const stats = await statsService.getLiveStats();
+          setLiveStats(stats);
+        }
+        
         const tournamentService = TournamentService.getInstance();
         
         // Initialize default tournament if none exists
         if (!tournamentService.getCurrentTournament()) {
           tournamentService.initializeDefaultTournament();
         }
-        
-        // Load live stats
-        const stats = await statsService.getLiveStats();
-        setLiveStats(stats);
         
         // Load current tournament
         const tournament = tournamentService.getCurrentTournament();
@@ -375,8 +388,8 @@ export default function Home() {
 
     loadLiveData();
     
-    // Refresh data every 5 minutes
-    const interval = setInterval(loadLiveData, 5 * 60 * 1000);
+    // Refresh data every 2 minutes for live stats
+    const interval = setInterval(loadLiveData, 2 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, []);

@@ -1,227 +1,321 @@
-import { ethers } from 'ethers';
-import fetch from 'node-fetch';
+// Real-Time NBA Stats Updater
+import cron from 'node-cron';
+import { Pool } from 'pg';
+import NBAStatsService from './nbaStatsService.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const CONTRACT_ADDRESS = "0x0F9Eb62C5163414E0df3DECf9D2016E76B38b557";
-const CONTRACT_ABI = [
-  "function updatePlayerScore(uint256 playerId, uint256 points) external"
-];
+class StatsUpdater {
+  private static instance: StatsUpdater;
+  private db: Pool;
+  private nbaStatsService: NBAStatsService;
+  private isRunning: boolean = false;
 
-const provider = new ethers.JsonRpcProvider("https://data-seed-prebsc-1-s1.binance.org:8545");
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
-
-// Map your player IDs to NBA API player IDs
-const NBA_PLAYER_MAP = {
-  // Point Guards
-  1: "1629029",   // Luka Doncic
-  2: "201939",    // Stephen Curry
-  3: "1628983",   // Shai Gilgeous-Alexander
-  4: "1629027",   // Trae Young
-  5: "203081",    // Damian Lillard
-  6: "1629630",   // Ja Morant
-  7: "1630169",   // Tyrese Haliburton
-  8: "1630163",   // LaMelo Ball
-  9: "1628368",   // De'Aaron Fox
-  10: "1629636",  // Darius Garland
-  
-  // Shooting Guards
-  31: "1626164",  // Devin Booker
-  32: "1628378",  // Donovan Mitchell
-  33: "1630162",  // Anthony Edwards
-  34: "1627759",  // Jaylen Brown
-  35: "203897",   // Zach LaVine
-  36: "201942",   // DeMar DeRozan
-  37: "203078",   // Bradley Beal
-  
-  // Small Forwards
-  61: "2544",     // LeBron James
-  62: "201142",   // Kevin Durant
-  63: "1628369",  // Jayson Tatum
-  64: "202695",   // Kawhi Leonard
-  65: "202710",   // Jimmy Butler
-  66: "202331",   // Paul George
-  
-  // Power Forwards
-  91: "203507",   // Giannis Antetokounmpo
-  92: "1629627",  // Zion Williamson
-  93: "1631094",  // Paolo Banchero
-  94: "203944",   // Julius Randle
-  
-  // Centers
-  121: "203999",  // Nikola Jokic
-  122: "203954",  // Joel Embiid
-  123: "203076",  // Anthony Davis
-  124: "1641705", // Victor Wembanyama
-  125: "1628389", // Bam Adebayo
-  126: "1627734", // Domantas Sabonis
-  127: "1626157", // Karl-Anthony Towns
-  
-  // Add all 150 players...
-};
-
-// Fetch player stats from NBA API
-async function fetchPlayerStats(nbaPlayerId) {
-  try {
-    const today = new Date();
-    const season = today.getMonth() >= 9 ? `${today.getFullYear()}-${(today.getFullYear() + 1).toString().slice(-2)}` : `${today.getFullYear() - 1}-${today.getFullYear().toString().slice(-2)}`;
-    
-    // NBA Stats API endpoint for player game log
-    const url = `https://stats.nba.com/stats/playergamelog?PlayerID=${nbaPlayerId}&Season=${season}&SeasonType=Regular%20Season`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://stats.nba.com/',
-        'Origin': 'https://stats.nba.com',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'x-nba-stats-origin': 'stats',
-        'x-nba-stats-token': 'true'
+  private constructor() {
+    // Initialize database connection
+    this.db = new Pool({
+      connectionString: process.env.DATABASE_URL || 'postgresql://solanafantasyleague_user:N2JoE73LIqQUZmznhtyndIUtE6QY6H9o@dpg-d3trvdu3jp1c7399behg-a.frankfurt-postgres.render.com/solanafantasyleague',
+      ssl: {
+        rejectUnauthorized: false
       }
     });
-    
-    if (!response.ok) {
-      console.error(`Failed to fetch stats for player ${nbaPlayerId}: ${response.status}`);
-      return null;
-    }
-    
-    const data = await response.json();
-    const statsData = data;
-    if (statsData.resultSets && statsData.resultSets[0].rowSet.length > 0) {
-      // Get most recent game (first row)
-      const lastGame = statsData.resultSets[0].rowSet[0];
-      const headers = statsData.resultSets[0].headers;
-      // Find indices for each stat
-      const ptsIndex = headers.indexOf('PTS');
-      const rebIndex = headers.indexOf('REB');
-      const astIndex = headers.indexOf('AST');
-      const stlIndex = headers.indexOf('STL');
-      const blkIndex = headers.indexOf('BLK');
-      const toIndex = headers.indexOf('TOV');
-      const stats = {
-        pts: lastGame[ptsIndex] || 0,
-        reb: lastGame[rebIndex] || 0,
-        ast: lastGame[astIndex] || 0,
-        stl: lastGame[stlIndex] || 0,
-        blk: lastGame[blkIndex] || 0,
-        to: lastGame[toIndex] || 0
-      };
-      // Calculate fantasy points
-      // Formula: PTS + (REB * 1.2) + (AST * 1.5) + (STL * 3) + (BLK * 3) + (TO * -1)
-      const fantasyPoints = Math.floor(
-        stats.pts + 
-        (stats.reb * 1.2) + 
-        (stats.ast * 1.5) + 
-        (stats.stl * 3) + 
-        (stats.blk * 3) + 
-        (stats.to * -1)
-      );
-      return { ...stats, fantasyPoints };
-    }
-    return null;
-  } catch (error) {
-    console.error(`Error fetching stats for player ${nbaPlayerId}:`, error.message);
-    return null;
-  }
-}
 
-// Check if there are live games today
-async function getLiveGames() {
-  try {
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const url = `https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    const scoreboardData = data;
-    if (scoreboardData.scoreboard && scoreboardData.scoreboard.games) {
-      const liveGames = scoreboardData.scoreboard.games.filter((game) => 
-        game.gameStatus === 2 // 2 = Live
-      );
-      return liveGames.length > 0 ? liveGames : [];
-    }
-    return [];
-  } catch (error) {
-    console.error('Error fetching live games:', error.message);
-    return [];
+    this.nbaStatsService = NBAStatsService.getInstance();
+    this.setupCronJobs();
   }
-}
 
-// Update all player scores on blockchain
-async function updateAllScores() {
-  console.log('\n🔄 Starting score update cycle...');
-  console.log(`Time: ${new Date().toLocaleString()}`);
-  
-  const liveGames = await getLiveGames();
-  console.log(`📊 Live games: ${liveGames.length}`);
-  
-  let successCount = 0;
-  let errorCount = 0;
-  
-  for (const [playerId, nbaId] of Object.entries(NBA_PLAYER_MAP)) {
+  public static getInstance(): StatsUpdater {
+    if (!StatsUpdater.instance) {
+      StatsUpdater.instance = new StatsUpdater();
+    }
+    return StatsUpdater.instance;
+  }
+
+  // Setup automated cron jobs
+  private setupCronJobs(): void {
+    console.log('🕐 Setting up NBA stats update schedules...');
+
+    // Update stats every 2 minutes during NBA games (6 PM - 2 AM EST)
+    cron.schedule('*/2 * 18-23,0-2 * * *', () => {
+      this.updateStats('Live game update');
+    }, {
+      timezone: 'America/New_York'
+    });
+
+    // Update stats every 5 minutes during other hours
+    cron.schedule('*/5 * * * *', () => {
+      this.updateStats('Regular update');
+    });
+
+    // Full refresh every hour
+    cron.schedule('0 * * * *', () => {
+      this.updateStats('Hourly refresh');
+    });
+
+    // Daily cleanup and summary at 3 AM EST
+    cron.schedule('0 3 * * *', () => {
+      this.dailyCleanup();
+    }, {
+      timezone: 'America/New_York'
+    });
+
+    console.log('✅ Cron jobs scheduled successfully');
+  }
+
+  // Main stats update function
+  async updateStats(reason: string = 'Manual update'): Promise<void> {
+    if (this.isRunning) {
+      console.log('⏳ Stats update already running, skipping...');
+      return;
+    }
+
+    this.isRunning = true;
+    const startTime = Date.now();
+
     try {
-      console.log(`\nFetching stats for Player ID ${playerId} (NBA ID: ${nbaId})...`);
+      console.log(`🔄 Starting stats update: ${reason}`);
+
+      // Fetch live stats from NBA APIs
+      const liveStats = await this.nbaStatsService.getLiveStats();
       
-      const stats = await fetchPlayerStats(nbaId);
-      
-      if (stats) {
-        console.log(`  Stats: ${stats.pts} PTS, ${stats.reb} REB, ${stats.ast} AST, ${stats.stl} STL, ${stats.blk} BLK, ${stats.to} TO`);
-        console.log(`  Fantasy Points: ${stats.fantasyPoints}`);
-        
-        // Update on blockchain
-        console.log(`  Updating on-chain...`);
-        const tx = await contract.updatePlayerScore(playerId, stats.fantasyPoints, {
-          gasLimit: 100000
-        });
-        
-        const receipt = await tx.wait();
-        console.log(`  ✅ Updated! Gas used: ${receipt.gasUsed.toString()}`);
-        
-        successCount++;
-      } else {
-        console.log(`  ⚠️ No recent stats found`);
+      if (liveStats.length === 0) {
+        console.log('⚠️ No live stats available');
+        return;
       }
-      
-      // Rate limiting - wait 2 seconds between requests
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
+      // Update database with new stats
+      await this.updateDatabaseStats(liveStats);
+
+      // Update tournament scores if any tournaments are active
+      await this.updateTournamentScores();
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ Stats update completed in ${duration}ms - Updated ${liveStats.length} players`);
+
     } catch (error) {
-      console.error(`  ❌ Error updating player ${playerId}:`, error.message);
-      errorCount++;
+      console.error('❌ Error updating stats:', error);
+    } finally {
+      this.isRunning = false;
     }
   }
-  
-  console.log(`\n📊 Update Summary:`);
-  console.log(`  ✅ Success: ${successCount}`);
-  console.log(`  ❌ Errors: ${errorCount}`);
-  console.log(`  Total: ${Object.keys(NBA_PLAYER_MAP).length}`);
-  console.log(`\n⏰ Next update in ${liveGames.length > 0 ? '5 minutes' : '1 hour'}...\n`);
-}
 
-// Main execution
-async function main() {
-  console.log('🏀 NBA Fantasy Stats Updater Started!');
-  console.log(`Contract: ${CONTRACT_ADDRESS}`);
-  console.log(`Network: BSC Testnet\n`);
-  
-  // Initial update
-  await updateAllScores();
-  
-  // Schedule updates
-  // - Every 5 minutes when there are live games
-  // - Every 1 hour otherwise
-  setInterval(async () => {
-    const liveGames = await getLiveGames();
-    const interval = liveGames.length > 0 ? 5 * 60 * 1000 : 60 * 60 * 1000;
+  // Update player stats in database
+  private async updateDatabaseStats(stats: any[]): Promise<void> {
+    const client = await this.db.connect();
     
-    await updateAllScores();
-  }, 5 * 60 * 1000); // Check every 5 minutes
+    try {
+      await client.query('BEGIN');
+
+      for (const stat of stats) {
+        // Insert or update player stats
+        await client.query(`
+          INSERT INTO player_stats (
+            player_id, pts, reb, ast, stl, blk, turnovers, fg_made, fg_attempted,
+            ft_made, ft_attempted, fantasy_points, game_date, opponent, is_playing,
+            minutes, plus_minus, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
+          ON CONFLICT (player_id, game_date) 
+          DO UPDATE SET 
+            pts = EXCLUDED.pts,
+            reb = EXCLUDED.reb,
+            ast = EXCLUDED.ast,
+            stl = EXCLUDED.stl,
+            blk = EXCLUDED.blk,
+            turnovers = EXCLUDED.turnovers,
+            fg_made = EXCLUDED.fg_made,
+            fg_attempted = EXCLUDED.fg_attempted,
+            ft_made = EXCLUDED.ft_made,
+            ft_attempted = EXCLUDED.ft_attempted,
+            fantasy_points = EXCLUDED.fantasy_points,
+            opponent = EXCLUDED.opponent,
+            is_playing = EXCLUDED.is_playing,
+            minutes = EXCLUDED.minutes,
+            plus_minus = EXCLUDED.plus_minus,
+            updated_at = NOW()
+        `, [
+          stat.playerId, stat.pts, stat.reb, stat.ast, stat.stl, stat.blk,
+          stat.turnovers, stat.fgMade, stat.fgAttempted, stat.ftMade,
+          stat.ftAttempted, stat.fantasyPoints, stat.gameDate, stat.opponent,
+          stat.isPlaying, stat.minutes, stat.plusMinus
+        ]);
+
+        // Update player table if needed
+        await client.query(`
+          INSERT INTO players (id, name, team, position, salary, nba_id, photo)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            team = EXCLUDED.team,
+            position = EXCLUDED.position,
+            salary = EXCLUDED.salary
+        `, [
+          stat.playerId, stat.name, stat.team, stat.position, 5, // Default salary
+          stat.playerId, `https://cdn.nba.com/headshots/nba/latest/1040x760/${stat.playerId}.png`
+        ]);
+      }
+
+      await client.query('COMMIT');
+      console.log(`📊 Updated ${stats.length} player stats in database`);
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Update tournament scores based on current player stats
+  private async updateTournamentScores(): Promise<void> {
+    const client = await this.db.connect();
+    
+    try {
+      // Get active tournaments
+      const activeTournaments = await client.query(`
+        SELECT id FROM tournaments 
+        WHERE status = 'active' AND start_time <= NOW() AND end_time > NOW()
+      `);
+
+      for (const tournament of activeTournaments.rows) {
+        await this.updateTournamentScoresForTournament(client, tournament.id);
+      }
+
+    } catch (error) {
+      console.error('Error updating tournament scores:', error);
+    } finally {
+      client.release();
+    }
+  }
+
+  // Update scores for a specific tournament
+  private async updateTournamentScoresForTournament(client: any, tournamentId: string): Promise<void> {
+    try {
+      // Get all lineups for this tournament
+      const lineups = await client.query(`
+        SELECT ul.*, ps.fantasy_points
+        FROM user_lineups ul
+        LEFT JOIN player_stats ps ON (
+          ps.player_id IN (ul.pg_player_id, ul.sg_player_id, ul.sf_player_id, ul.pf_player_id, ul.c_player_id)
+          AND ps.game_date = CURRENT_DATE
+        )
+        WHERE ul.tournament_id = $1
+      `, [tournamentId]);
+
+      // Calculate total scores for each lineup
+      const lineupScores = new Map();
+      
+      for (const lineup of lineups.rows) {
+        const lineupId = lineup.id;
+        if (!lineupScores.has(lineupId)) {
+          lineupScores.set(lineupId, {
+            walletAddress: lineup.wallet_address,
+            totalScore: 0,
+            lineup: lineup
+          });
+        }
+        
+        if (lineup.fantasy_points) {
+          lineupScores.get(lineupId).totalScore += lineup.fantasy_points;
+        }
+      }
+
+      // Update matchup scores
+      for (const [lineupId, data] of lineupScores) {
+        await client.query(`
+          UPDATE tournament_matchups 
+          SET 
+            wallet1_score = CASE WHEN wallet1 = $1 THEN $2 ELSE wallet1_score END,
+            wallet2_score = CASE WHEN wallet2 = $1 THEN $2 ELSE wallet2_score END,
+            updated_at = NOW()
+          WHERE tournament_id = $3 AND (wallet1 = $1 OR wallet2 = $1)
+        `, [data.walletAddress, data.totalScore, tournamentId]);
+      }
+
+      console.log(`🏆 Updated scores for tournament ${tournamentId}`);
+
+    } catch (error) {
+      console.error(`Error updating tournament ${tournamentId}:`, error);
+    }
+  }
+
+  // Daily cleanup and maintenance
+  private async dailyCleanup(): Promise<void> {
+    console.log('🧹 Running daily cleanup...');
+    
+    try {
+      const client = await this.db.connect();
+      
+      // Archive old player stats (keep last 30 days)
+      await client.query(`
+        DELETE FROM player_stats 
+        WHERE game_date < CURRENT_DATE - INTERVAL '30 days'
+      `);
+
+      // Update completed tournaments
+      await client.query(`
+        UPDATE tournaments 
+        SET status = 'completed' 
+        WHERE status = 'active' AND end_time < NOW()
+      `);
+
+      // Clean up old matchups
+      await client.query(`
+        DELETE FROM tournament_matchups 
+        WHERE tournament_id IN (
+          SELECT id FROM tournaments WHERE status = 'completed' AND end_time < NOW() - INTERVAL '7 days'
+        )
+      `);
+
+      console.log('✅ Daily cleanup completed');
+      client.release();
+
+    } catch (error) {
+      console.error('Error during daily cleanup:', error);
+    }
+  }
+
+  // Manual trigger for immediate update
+  async triggerUpdate(): Promise<void> {
+    console.log('🚀 Manual stats update triggered');
+    await this.updateStats('Manual trigger');
+  }
+
+  // Get update status
+  getStatus(): any {
+    return {
+      isRunning: this.isRunning,
+      lastUpdate: this.nbaStatsService.lastFetchTime,
+      cacheSize: this.nbaStatsService.cachedStats.size
+    };
+  }
+
+  // Graceful shutdown
+  async shutdown(): Promise<void> {
+    console.log('🛑 Shutting down stats updater...');
+    await this.db.end();
+  }
 }
 
-main().catch(error => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+// Export singleton instance
+export default StatsUpdater;
+
+// If running directly, start the updater
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const updater = StatsUpdater.getInstance();
+  
+  // Handle graceful shutdown
+  process.on('SIGINT', async () => {
+    console.log('\n🛑 Received SIGINT, shutting down gracefully...');
+    await updater.shutdown();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', async () => {
+    console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
+    await updater.shutdown();
+    process.exit(0);
+  });
+
+  console.log('🏀 NBA Stats Updater started successfully!');
+}

@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
+import NBAStatsService from './nbaStatsService.js';
+import StatsUpdater from './statsUpdater.js';
 
 dotenv.config();
 
@@ -15,12 +17,15 @@ app.use(express.json());
 
 // PostgreSQL connection
 const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'nba_fantasy',
-  password: process.env.DB_PASSWORD || 'password',
-  port: parseInt(process.env.DB_PORT || '5432'),
+  connectionString: process.env.DATABASE_URL || 'postgresql://solanafantasyleague_user:N2JoE73LIqQUZmznhtyndIUtE6QY6H9o@dpg-d3trvdu3jp1c7399behg-a.frankfurt-postgres.render.com/solanafantasyleague',
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
+
+// Initialize services
+const nbaStatsService = NBAStatsService.getInstance();
+const statsUpdater = StatsUpdater.getInstance();
 
 // Test database connection
 pool.on('connect', () => {
@@ -181,12 +186,70 @@ app.get('/api/player-stats', async (req, res) => {
       SELECT ps.*, p.name, p.team, p.position 
       FROM player_stats ps 
       JOIN players p ON ps.player_id = p.id 
+      WHERE ps.game_date = CURRENT_DATE
       ORDER BY ps.fantasy_points DESC
     `);
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching all player stats:', error);
     res.status(500).json({ error: 'Failed to fetch player stats' });
+  }
+});
+
+// Get live stats (real-time from NBA APIs)
+app.get('/api/live-stats', async (req, res) => {
+  try {
+    const liveStats = await nbaStatsService.getLiveStats();
+    res.json(liveStats);
+  } catch (error) {
+    console.error('Error fetching live stats:', error);
+    res.status(500).json({ error: 'Failed to fetch live stats' });
+  }
+});
+
+// Get top performers
+app.get('/api/top-performers', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const topPerformers = await nbaStatsService.getTopPerformers(limit);
+    res.json(topPerformers);
+  } catch (error) {
+    console.error('Error fetching top performers:', error);
+    res.status(500).json({ error: 'Failed to fetch top performers' });
+  }
+});
+
+// Get team stats
+app.get('/api/team-stats/:team', async (req, res) => {
+  try {
+    const { team } = req.params;
+    const teamStats = await nbaStatsService.getTeamStats(team);
+    res.json(teamStats);
+  } catch (error) {
+    console.error('Error fetching team stats:', error);
+    res.status(500).json({ error: 'Failed to fetch team stats' });
+  }
+});
+
+// Trigger manual stats update
+app.post('/api/admin/update-stats', async (req, res) => {
+  try {
+    await statsUpdater.triggerUpdate();
+    res.json({ success: true, message: 'Stats update triggered' });
+  } catch (error) {
+    console.error('Error triggering stats update:', error);
+    res.status(500).json({ error: 'Failed to trigger stats update' });
+  }
+});
+
+// Get stats updater status
+app.get('/api/admin/stats-status', async (req, res) => {
+  try {
+    const status = statsUpdater.getStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('Error fetching stats status:', error);
+    res.status(500).json({ error: 'Failed to fetch stats status' });
   }
 });
 
