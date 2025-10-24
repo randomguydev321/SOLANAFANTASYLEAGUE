@@ -4,9 +4,9 @@ const nextConfig = {
   images: {
     domains: ['cdn.nba.com'],
   },
-  // Fix chunk loading issues
+  // Disable CSS optimization to prevent critters error
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled to fix build error
   },
   // Better error handling
   onDemandEntries: {
