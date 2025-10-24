@@ -89,7 +89,6 @@ export default function Home() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [tempUsername, setTempUsername] = useState('');
-  const [shuffleMode, setShuffleMode] = useState<'daily' | 'hourly' | 'every-game'>('daily');
   
   // Leaderboard state
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -307,14 +306,6 @@ export default function Home() {
   const loadMatchup = (walletAddress: string): Matchup | null => {
     const saved = localStorage.getItem(`matchup_${walletAddress}`);
     return saved ? JSON.parse(saved) : null;
-  };
-
-  const shuffleOpponent = (userWallet: string) => {
-    const newMatchup = generateDailyMatchup(userWallet);
-    if (newMatchup) {
-      setUserMatchup(newMatchup);
-      saveMatchup(userWallet, newMatchup);
-    }
   };
 
   const formatAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -663,16 +654,7 @@ export default function Home() {
                         <h3 className="text-[#f2a900] text-2xl font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                           🏀 Live Matchup
                   </h3>
-                        <div className="flex items-center gap-2">
-              <button 
-                            onClick={() => shuffleOpponent(wallet.publicKey!.toString())}
-                            className="bg-[#f2a900] text-[#0a0e27] px-3 py-1 text-xs font-black uppercase tracking-wider hover:bg-white transition-colors"
-                style={{ fontFamily: 'Bebas Neue, sans-serif' }}
-              >
-                            🔄 Shuffle
-              </button>
-              </div>
-            </div>
+                    </div>
             
                       {userMatchup ? (
                         // Show matchup when real opponent is available
@@ -710,37 +692,10 @@ export default function Home() {
                               Matchup expires in: <span className="text-[#f2a900] font-bold">{Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m</span>
                     </div>
                             <div className="text-gray-400 text-xs">
-                              {shuffleMode === 'every-game' ? 'New opponent every game' : 
-                               shuffleMode === 'hourly' ? 'New opponent every hour' : 
-                               'New random opponent every 24 hours'}
+                              New random opponent every 24 hours
                   </div>
                 </div>
                           
-                          {/* Shuffle Mode Selector */}
-                          <div className="border-t border-gray-600 pt-4">
-                            <div className="text-center mb-3">
-                              <div className="text-white font-bold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                                Shuffle Mode
-              </div>
-                              <div className="flex gap-2 justify-center">
-                                {(['every-game', 'hourly', 'daily'] as const).map((mode) => (
-                                  <button
-                                    key={mode}
-                                    onClick={() => setShuffleMode(mode)}
-                                    className={`px-3 py-1 text-xs font-black uppercase tracking-wider transition-colors ${
-                                      shuffleMode === mode 
-                                        ? 'bg-[#f2a900] text-[#0a0e27]' 
-                                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                                    }`}
-                                    style={{ fontFamily: 'Bebas Neue, sans-serif' }}
-                                  >
-                                    {mode === 'every-game' ? 'Per Game' : 
-                                     mode === 'hourly' ? 'Hourly' : 'Daily'}
-                                  </button>
-                                ))}
-            </div>
-          </div>
-                  </div>
                         </>
                       ) : (
                         // Show waiting message when no real opponents available
@@ -790,12 +745,12 @@ export default function Home() {
                 opponentTeam={opponentTeam}
               />
 
-              {/* Lineup Registration */}
+              {/* Build Your Lineup */}
               {wallet.connected && (
                 <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-[#f2a900] text-xl font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                      🏀 Register Lineup
+                      🏀 Build Your Lineup
                     </h3>
                     <div className="text-right">
                       <div className="text-white font-bold text-sm">Team Score</div>
