@@ -320,139 +320,50 @@ export default function Home() {
     return null;
   };
 
-  // Initialize sample leaderboard data
+  // Initialize empty leaderboard - will be populated with real data
   useEffect(() => {
-    const sampleLeaderboard = [
-      { walletAddress: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU', totalScore: 245, wins: 8, losses: 2, lastUpdated: new Date().toISOString() },
-      { walletAddress: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM', totalScore: 238, wins: 7, losses: 3, lastUpdated: new Date().toISOString() },
-      { walletAddress: '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1', totalScore: 231, wins: 6, losses: 4, lastUpdated: new Date().toISOString() },
-      { walletAddress: '2QdhepnKRTLjjSqPL1PtKNwqrUkoLee5Gqs8bvZhRdMv', totalScore: 225, wins: 5, losses: 5, lastUpdated: new Date().toISOString() },
-      { walletAddress: '8UJgxaiQx5nTrdDgph3FjhGqZJ2dGqJ7KzKjKjKjKjKj', totalScore: 218, wins: 4, losses: 6, lastUpdated: new Date().toISOString() },
-    ];
-    setLeaderboardData(sampleLeaderboard);
+    setLeaderboardData([]);
   }, []);
 
-  // Real NBA player stats with fantasy scoring
+  // Load player stats from NBA API
   useEffect(() => {
-    const realPlayerStats: {[key: number]: PlayerStats} = {
-      // Point Guards
-      1: { pts: 33.9, reb: 9.2, ast: 9.8, stl: 1.4, blk: 0.5, to: 3.5, fantasyPoints: 0 }, // Luka Doncic
-      2: { pts: 26.4, reb: 4.5, ast: 5.1, stl: 0.9, blk: 0.4, to: 3.2, fantasyPoints: 0 }, // Stephen Curry
-      3: { pts: 30.1, reb: 5.5, ast: 6.2, stl: 1.3, blk: 0.9, to: 2.8, fantasyPoints: 0 }, // Shai Gilgeous-Alexander
-      4: { pts: 25.7, reb: 2.8, ast: 10.8, stl: 1.3, blk: 0.2, to: 4.1, fantasyPoints: 0 }, // Trae Young
-      5: { pts: 24.3, reb: 4.4, ast: 7.0, stl: 1.0, blk: 0.3, to: 2.8, fantasyPoints: 0 }, // Damian Lillard
-      6: { pts: 25.1, reb: 5.6, ast: 8.1, stl: 1.0, blk: 0.3, to: 3.4, fantasyPoints: 0 }, // Ja Morant
-      7: { pts: 20.1, reb: 3.9, ast: 10.9, stl: 1.2, blk: 0.7, to: 2.8, fantasyPoints: 0 }, // Tyrese Haliburton
-      8: { pts: 23.9, reb: 5.1, ast: 8.0, stl: 1.8, blk: 0.3, to: 3.6, fantasyPoints: 0 }, // LaMelo Ball
-      9: { pts: 25.2, reb: 4.2, ast: 6.0, stl: 1.1, blk: 0.3, to: 2.8, fantasyPoints: 0 }, // De'Aaron Fox
-      10: { pts: 18.6, reb: 2.7, ast: 6.5, stl: 1.2, blk: 0.1, to: 2.6, fantasyPoints: 0 }, // Darius Garland
-      11: { pts: 28.7, reb: 3.6, ast: 6.7, stl: 0.9, blk: 0.2, to: 2.4, fantasyPoints: 0 }, // Jalen Brunson
-      12: { pts: 20.5, reb: 5.3, ast: 6.4, stl: 1.3, blk: 0.3, to: 2.8, fantasyPoints: 0 }, // Dejounte Murray
-      13: { pts: 16.6, reb: 3.8, ast: 8.1, stl: 1.0, blk: 0.8, to: 2.0, fantasyPoints: 0 }, // Fred VanVleet
-      14: { pts: 25.9, reb: 3.7, ast: 6.2, stl: 0.8, blk: 0.5, to: 1.8, fantasyPoints: 0 }, // Tyrese Maxey
-      15: { pts: 9.2, reb: 3.9, ast: 6.8, stl: 1.2, blk: 0.1, to: 1.9, fantasyPoints: 0 }, // Chris Paul
-      16: { pts: 8.0, reb: 2.8, ast: 4.6, stl: 0.9, blk: 0.2, to: 1.8, fantasyPoints: 0 }, // Kyle Lowry
-      17: { pts: 10.2, reb: 2.9, ast: 6.0, stl: 1.0, blk: 0.1, to: 1.8, fantasyPoints: 0 }, // Mike Conley
-      18: { pts: 14.0, reb: 2.9, ast: 6.1, stl: 0.8, blk: 0.2, to: 2.1, fantasyPoints: 0 }, // Dennis Schroder
-      19: { pts: 18.7, reb: 2.6, ast: 4.9, stl: 0.8, blk: 0.2, to: 2.4, fantasyPoints: 0 }, // Collin Sexton
-      20: { pts: 19.1, reb: 4.5, ast: 5.1, stl: 0.9, blk: 0.2, to: 2.8, fantasyPoints: 0 }, // Coby White
-
-      // Shooting Guards
-      31: { pts: 27.1, reb: 4.5, ast: 6.9, stl: 0.9, blk: 0.3, to: 3.7, fantasyPoints: 0 }, // Devin Booker
-      32: { pts: 26.6, reb: 5.1, ast: 6.1, stl: 1.8, blk: 0.5, to: 2.8, fantasyPoints: 0 }, // Donovan Mitchell
-      33: { pts: 25.9, reb: 5.4, ast: 5.1, stl: 1.3, blk: 0.5, to: 3.2, fantasyPoints: 0 }, // Anthony Edwards
-      34: { pts: 23.0, reb: 5.5, ast: 3.6, stl: 1.2, blk: 0.5, to: 2.9, fantasyPoints: 0 }, // Jaylen Brown
-      35: { pts: 19.5, reb: 5.2, ast: 3.9, stl: 0.8, blk: 0.3, to: 2.8, fantasyPoints: 0 }, // Zach LaVine
-      36: { pts: 24.0, reb: 4.3, ast: 5.3, stl: 1.1, blk: 0.3, to: 2.0, fantasyPoints: 0 }, // DeMar DeRozan
-      37: { pts: 18.2, reb: 4.4, ast: 5.0, stl: 1.0, blk: 0.4, to: 2.8, fantasyPoints: 0 }, // Bradley Beal
-      38: { pts: 20.8, reb: 5.3, ast: 4.5, stl: 0.8, blk: 0.3, to: 2.8, fantasyPoints: 0 }, // Tyler Herro
-      39: { pts: 24.4, reb: 4.6, ast: 5.3, stl: 1.0, blk: 0.4, to: 2.8, fantasyPoints: 0 }, // Desmond Bane
-      40: { pts: 17.1, reb: 3.4, ast: 5.0, stl: 0.6, blk: 0.2, to: 2.1, fantasyPoints: 0 }, // Jordan Clarkson
-      41: { pts: 20.0, reb: 4.3, ast: 5.9, stl: 0.8, blk: 0.6, to: 2.2, fantasyPoints: 0 }, // CJ McCollum
-      42: { pts: 17.9, reb: 3.3, ast: 2.3, stl: 0.6, blk: 0.5, to: 1.6, fantasyPoints: 0 }, // Klay Thompson
-      43: { pts: 22.6, reb: 3.6, ast: 5.5, stl: 0.6, blk: 0.2, to: 2.8, fantasyPoints: 0 }, // Anfernee Simons
-      44: { pts: 15.9, reb: 4.1, ast: 5.5, stl: 0.8, blk: 0.3, to: 2.1, fantasyPoints: 0 }, // Austin Reaves
-      45: { pts: 19.6, reb: 5.2, ast: 3.5, stl: 0.8, blk: 0.3, to: 2.8, fantasyPoints: 0 }, // Jalen Green
-      46: { pts: 18.6, reb: 4.3, ast: 2.4, stl: 0.6, blk: 0.2, to: 2.0, fantasyPoints: 0 }, // RJ Barrett
-      47: { pts: 12.8, reb: 3.6, ast: 1.9, stl: 0.5, blk: 0.2, to: 1.4, fantasyPoints: 0 }, // Jordan Hawkins
-      48: { pts: 15.2, reb: 4.2, ast: 5.2, stl: 0.9, blk: 1.2, to: 1.8, fantasyPoints: 0 }, // Derrick White
-      49: { pts: 8.1, reb: 2.4, ast: 1.3, stl: 0.6, blk: 0.1, to: 0.8, fantasyPoints: 0 }, // Gary Trent Jr
-      50: { pts: 8.6, reb: 2.4, ast: 1.7, stl: 0.6, blk: 0.2, to: 1.0, fantasyPoints: 0 }, // Buddy Hield
-
-      // Small Forwards
-      61: { pts: 25.7, reb: 7.3, ast: 8.3, stl: 1.3, blk: 0.5, to: 3.4, fantasyPoints: 0 }, // LeBron James
-      62: { pts: 27.1, reb: 6.7, ast: 5.0, stl: 0.9, blk: 1.2, to: 3.2, fantasyPoints: 0 }, // Kevin Durant
-      63: { pts: 26.9, reb: 8.1, ast: 4.9, stl: 1.0, blk: 0.6, to: 2.8, fantasyPoints: 0 }, // Jayson Tatum
-      64: { pts: 23.7, reb: 6.1, ast: 3.6, stl: 1.6, blk: 0.9, to: 2.0, fantasyPoints: 0 }, // Kawhi Leonard
-      65: { pts: 20.8, reb: 5.3, ast: 5.0, stl: 1.3, blk: 0.3, to: 2.1, fantasyPoints: 0 }, // Jimmy Butler
-      66: { pts: 22.6, reb: 5.2, ast: 3.5, stl: 1.2, blk: 0.3, to: 2.8, fantasyPoints: 0 }, // Paul George
-      67: { pts: 23.2, reb: 8.2, ast: 1.9, stl: 0.9, blk: 0.5, to: 2.0, fantasyPoints: 0 }, // Lauri Markkanen
-      68: { pts: 19.7, reb: 5.3, ast: 3.7, stl: 1.1, blk: 0.5, to: 2.8, fantasyPoints: 0 }, // Franz Wagner
-      69: { pts: 19.9, reb: 8.2, ast: 6.1, stl: 1.3, blk: 1.5, to: 2.8, fantasyPoints: 0 }, // Scottie Barnes
-      70: { pts: 20.8, reb: 5.1, ast: 5.7, stl: 0.8, blk: 0.6, to: 2.8, fantasyPoints: 0 }, // Brandon Ingram
-      71: { pts: 14.1, reb: 4.4, ast: 1.5, stl: 1.0, blk: 0.4, to: 1.4, fantasyPoints: 0 }, // OG Anunoby
-      72: { pts: 19.6, reb: 4.5, ast: 3.6, stl: 1.0, blk: 0.4, to: 2.0, fantasyPoints: 0 }, // Mikal Bridges
-      73: { pts: 15.6, reb: 3.9, ast: 1.5, stl: 0.8, blk: 0.3, to: 1.8, fantasyPoints: 0 }, // De'Andre Hunter
-      74: { pts: 11.0, reb: 3.4, ast: 2.5, stl: 1.1, blk: 0.3, to: 1.4, fantasyPoints: 0 }, // Herbert Jones
-      75: { pts: 13.2, reb: 4.5, ast: 1.7, stl: 0.6, blk: 0.6, to: 1.8, fantasyPoints: 0 }, // Andrew Wiggins
-      76: { pts: 15.7, reb: 6.0, ast: 3.7, stl: 0.8, blk: 0.3, to: 2.1, fantasyPoints: 0 }, // Keldon Johnson
-      77: { pts: 12.7, reb: 3.4, ast: 1.6, stl: 0.9, blk: 0.1, to: 1.8, fantasyPoints: 0 }, // Dillon Brooks
-      78: { pts: 11.9, reb: 3.1, ast: 2.9, stl: 0.8, blk: 0.2, to: 1.4, fantasyPoints: 0 }, // Bogdan Bogdanovic
-      79: { pts: 12.2, reb: 3.0, ast: 1.2, stl: 0.6, blk: 0.2, to: 1.0, fantasyPoints: 0 }, // Harrison Barnes
-      80: { pts: 15.4, reb: 5.0, ast: 1.5, stl: 1.0, blk: 0.4, to: 1.8, fantasyPoints: 0 }, // Kelly Oubre Jr
-
-      // Power Forwards
-      91: { pts: 30.4, reb: 11.5, ast: 6.5, stl: 1.2, blk: 1.1, to: 3.4, fantasyPoints: 0 }, // Giannis Antetokounmpo
-      92: { pts: 22.9, reb: 5.8, ast: 5.0, stl: 1.1, blk: 0.6, to: 3.4, fantasyPoints: 0 }, // Zion Williamson
-      93: { pts: 20.0, reb: 6.9, ast: 3.9, stl: 1.2, blk: 0.8, to: 2.8, fantasyPoints: 0 }, // Paolo Banchero
-      94: { pts: 24.0, reb: 9.2, ast: 5.0, stl: 0.6, blk: 0.3, to: 3.2, fantasyPoints: 0 }, // Julius Randle
-      95: { pts: 22.5, reb: 5.5, ast: 2.3, stl: 1.1, blk: 1.6, to: 2.8, fantasyPoints: 0 }, // Jaren Jackson Jr
-      96: { pts: 13.7, reb: 8.1, ast: 1.4, stl: 0.6, blk: 0.8, to: 1.8, fantasyPoints: 0 }, // Jabari Smith Jr
-      97: { pts: 15.1, reb: 8.5, ast: 1.1, stl: 0.6, blk: 0.6, to: 1.4, fantasyPoints: 0 }, // John Collins
-      98: { pts: 15.7, reb: 9.4, ast: 3.2, stl: 0.8, blk: 1.4, to: 2.1, fantasyPoints: 0 }, // Evan Mobley
-      99: { pts: 21.3, reb: 7.8, ast: 3.7, stl: 0.8, blk: 0.5, to: 2.8, fantasyPoints: 0 }, // Pascal Siakam
-      100: { pts: 17.2, reb: 6.5, ast: 3.1, stl: 0.8, blk: 0.6, to: 2.1, fantasyPoints: 0 }, // Tobias Harris
-      101: { pts: 21.0, reb: 3.5, ast: 2.8, stl: 0.8, blk: 0.8, to: 2.8, fantasyPoints: 0 }, // Jerami Grant
-      102: { pts: 13.8, reb: 6.5, ast: 3.5, stl: 0.8, blk: 0.5, to: 1.8, fantasyPoints: 0 }, // Aaron Gordon
-      103: { pts: 22.2, reb: 6.6, ast: 4.2, stl: 0.5, blk: 0.5, to: 2.8, fantasyPoints: 0 }, // Kyle Kuzma
-      104: { pts: 15.2, reb: 5.4, ast: 1.6, stl: 0.8, blk: 0.5, to: 1.4, fantasyPoints: 0 }, // Keegan Murray
-      105: { pts: 9.4, reb: 6.9, ast: 5.8, stl: 1.0, blk: 0.8, to: 2.8, fantasyPoints: 0 }, // Draymond Green
-      106: { pts: 12.9, reb: 6.7, ast: 1.9, stl: 0.8, blk: 1.2, to: 1.4, fantasyPoints: 0 }, // PJ Washington
-      107: { pts: 19.1, reb: 4.0, ast: 4.5, stl: 1.1, blk: 0.6, to: 2.8, fantasyPoints: 0 }, // Jalen Williams
-      108: { pts: 16.1, reb: 4.8, ast: 2.2, stl: 0.6, blk: 0.5, to: 1.8, fantasyPoints: 0 }, // Jonathan Kuminga
-      109: { pts: 14.8, reb: 4.9, ast: 2.1, stl: 0.8, blk: 0.4, to: 1.4, fantasyPoints: 0 }, // Trey Murphy III
-      110: { pts: 12.1, reb: 7.4, ast: 1.3, stl: 0.6, blk: 0.3, to: 1.4, fantasyPoints: 0 }, // Bobby Portis
-
-      // Centers
-      121: { pts: 24.5, reb: 12.4, ast: 9.8, stl: 1.3, blk: 0.9, to: 3.6, fantasyPoints: 0 }, // Nikola Jokic
-      122: { pts: 34.7, reb: 11.0, ast: 5.6, stl: 1.2, blk: 1.7, to: 3.7, fantasyPoints: 0 }, // Joel Embiid
-      123: { pts: 24.1, reb: 12.6, ast: 3.5, stl: 1.2, blk: 2.3, to: 2.1, fantasyPoints: 0 }, // Anthony Davis
-      124: { pts: 21.4, reb: 10.6, ast: 3.9, stl: 1.2, blk: 3.6, to: 3.7, fantasyPoints: 0 }, // Victor Wembanyama
-      125: { pts: 19.3, reb: 10.4, ast: 3.9, stl: 1.1, blk: 0.9, to: 2.8, fantasyPoints: 0 }, // Bam Adebayo
-      126: { pts: 19.4, reb: 13.7, ast: 8.2, stl: 0.9, blk: 0.6, to: 3.4, fantasyPoints: 0 }, // Domantas Sabonis
-      127: { pts: 24.6, reb: 9.8, ast: 3.6, stl: 0.7, blk: 1.6, to: 3.2, fantasyPoints: 0 }, // Karl-Anthony Towns
-      128: { pts: 21.1, reb: 9.3, ast: 5.0, stl: 1.2, blk: 0.7, to: 2.8, fantasyPoints: 0 }, // Alperen Sengun
-      129: { pts: 16.5, reb: 10.5, ast: 2.7, stl: 0.8, blk: 1.1, to: 1.8, fantasyPoints: 0 }, // Jarrett Allen
-      130: { pts: 20.1, reb: 7.2, ast: 2.0, stl: 0.7, blk: 1.9, to: 2.1, fantasyPoints: 0 }, // Kristaps Porzingis
-      131: { pts: 14.0, reb: 12.9, ast: 1.3, stl: 0.6, blk: 2.1, to: 1.8, fantasyPoints: 0 }, // Rudy Gobert
-      132: { pts: 17.1, reb: 6.9, ast: 1.3, stl: 0.5, blk: 1.9, to: 1.8, fantasyPoints: 0 }, // Myles Turner
-      133: { pts: 12.5, reb: 5.0, ast: 1.3, stl: 0.5, blk: 1.3, to: 1.0, fantasyPoints: 0 }, // Brook Lopez
-      134: { pts: 11.5, reb: 10.6, ast: 1.2, stl: 0.6, blk: 1.0, to: 1.4, fantasyPoints: 0 }, // Clint Capela
-      135: { pts: 5.6, reb: 6.4, ast: 0.6, stl: 0.5, blk: 1.3, to: 1.0, fantasyPoints: 0 }, // Mitchell Robinson
-      136: { pts: 18.0, reb: 10.5, ast: 3.4, stl: 0.8, blk: 0.8, to: 2.1, fantasyPoints: 0 }, // Nikola Vucevic
-      137: { pts: 10.1, reb: 11.0, ast: 3.9, stl: 1.1, blk: 1.1, to: 2.8, fantasyPoints: 0 }, // Jusuf Nurkic
-      138: { pts: 11.2, reb: 7.2, ast: 1.6, stl: 0.8, blk: 1.6, to: 1.4, fantasyPoints: 0 }, // Daniel Gafford
-      139: { pts: 10.4, reb: 9.1, ast: 1.2, stl: 0.3, blk: 1.2, to: 1.4, fantasyPoints: 0 }, // Ivica Zubac
-      150: { pts: 16.5, reb: 7.9, ast: 2.4, stl: 0.6, blk: 2.3, to: 1.8, fantasyPoints: 0 }, // Chet Holmgren
+    const loadPlayerStats = async () => {
+      try {
+        // Try to load from backend API first
+        const apiUrl = 'http://localhost:3001';
+        const response = await fetch(`${apiUrl}/api/player-stats`);
+        
+        if (response.ok) {
+          const apiStats = await response.json();
+          const formattedStats: {[key: number]: PlayerStats} = {};
+          
+          // Convert API data to our format
+          apiStats.forEach((player: any) => {
+            const stats = {
+              pts: player.pts || 0,
+              reb: player.reb || 0,
+              ast: player.ast || 0,
+              stl: player.stl || 0,
+              blk: player.blk || 0,
+              to: player.to || 0,
+              fantasyPoints: player.fantasy_points || 0
+            };
+            formattedStats[player.player_id] = stats;
+          });
+          
+          setPlayerStats(formattedStats);
+          console.log('✅ Loaded player stats from API');
+        } else {
+          throw new Error('API not available');
+        }
+      } catch (error) {
+        console.log('⚠️ API not available, using fallback stats');
+        // Fallback: Initialize with empty stats
+        setPlayerStats({});
+      }
     };
 
-    // Calculate fantasy points for each player using Points League scoring
-    Object.keys(realPlayerStats).forEach(playerId => {
-      const stats = realPlayerStats[parseInt(playerId)];
-      stats.fantasyPoints = Math.floor(calculateFantasyPoints(stats));
-    });
-
-    setPlayerStats(realPlayerStats);
+    loadPlayerStats();
   }, []);
 
   // Calculate used salary
@@ -618,19 +529,11 @@ export default function Home() {
     if (!wallet.publicKey) return;
     
     try {
-      // For now, we'll use mock data since the program isn't deployed yet
-      // In a real implementation, you'd call your Solana program here
-      setMyScore(Math.floor(Math.random() * 200) + 100);
-      setPrizePool('0.5');
-      
-      // Mock leaderboard data
-      const mockLeaderboard = [
-        { address: wallet.publicKey.toString(), score: Math.floor(Math.random() * 200) + 100 },
-        { address: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", score: Math.floor(Math.random() * 200) + 100 },
-        { address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", score: Math.floor(Math.random() * 200) + 100 },
-      ].sort((a, b) => b.score - a.score);
-      
-      setLeaderboard(mockLeaderboard);
+      // Load real data from Solana program (when deployed)
+      // For now, initialize with empty data
+      setMyScore(0);
+      setPrizePool('0');
+      setLeaderboard([]);
     } catch (error) {
       console.error('Error loading data:', error);
     }
