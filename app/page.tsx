@@ -333,6 +333,9 @@ export default function Home() {
     // Sort by total score
     leaderboardData.sort((a, b) => b.totalScore - a.totalScore);
     setLeaderboardData([...leaderboardData]);
+    
+    // Save to localStorage
+    localStorage.setItem('leaderboardData', JSON.stringify(leaderboardData));
   };
 
   const connectWallet = async () => {
@@ -430,16 +433,17 @@ export default function Home() {
     }
   };
 
-  // Initialize leaderboard with sample data
+  // Load leaderboard from localStorage (real user data only)
   useEffect(() => {
     if (isClient) {
-      setLeaderboardData([
-        { wallet: 'sample1', username: 'TopPlayer', totalScore: 1250, wins: 8, losses: 2 },
-        { wallet: 'sample2', username: 'BallHandler', totalScore: 1180, wins: 7, losses: 3 },
-        { wallet: 'sample3', username: 'SlamDunk', totalScore: 1120, wins: 6, losses: 4 },
-        { wallet: 'sample4', username: 'ThreePoint', totalScore: 1080, wins: 5, losses: 5 },
-        { wallet: 'sample5', username: 'ReboundKing', totalScore: 1020, wins: 4, losses: 6 },
-      ]);
+      // Load real leaderboard data from localStorage
+      const savedLeaderboard = localStorage.getItem('leaderboardData');
+      if (savedLeaderboard) {
+        setLeaderboardData(JSON.parse(savedLeaderboard));
+      } else {
+        // Start with empty leaderboard - no mock data
+        setLeaderboardData([]);
+      }
     }
   }, [isClient]);
 
@@ -665,30 +669,38 @@ export default function Home() {
                   🏆 Leaderboard
                 </h3>
                 <div className="space-y-3">
-                  {leaderboardData.slice(0, 5).map((entry, index) => (
-                    <div key={entry.wallet} className="flex items-center justify-between bg-[#0a0e27] p-3 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
-                          index === 0 ? 'bg-yellow-500 text-black' :
-                          index === 1 ? 'bg-gray-400 text-black' :
-                          index === 2 ? 'bg-orange-600 text-white' :
-                          'bg-gray-600 text-white'
-                        }`}>
-                          {index + 1}
+                  {leaderboardData.length > 0 ? (
+                    leaderboardData.slice(0, 5).map((entry, index) => (
+                      <div key={entry.wallet} className="flex items-center justify-between bg-[#0a0e27] p-3 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                            index === 0 ? 'bg-yellow-500 text-black' :
+                            index === 1 ? 'bg-gray-400 text-black' :
+                            index === 2 ? 'bg-orange-600 text-white' :
+                            'bg-gray-600 text-white'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="text-white font-bold text-sm">{entry.username}</div>
+                            <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-white font-bold text-sm">{entry.username}</div>
-                          <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
+                        <div className="text-right">
+                          <div className="text-[#f2a900] font-black text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                            {entry.totalScore.toFixed(1)}
+                          </div>
+                          <div className="text-gray-400 text-xs">points</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-[#f2a900] font-black text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                          {entry.totalScore.toFixed(1)}
-                        </div>
-                        <div className="text-gray-400 text-xs">points</div>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-4xl mb-2">🏆</div>
+                      <p className="text-gray-400 text-sm">No players yet</p>
+                      <p className="text-gray-500 text-xs">Be the first to register a lineup!</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
