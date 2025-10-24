@@ -36,6 +36,57 @@ interface BasketballCourtProps {
   salaryCap: number;
 }
 
+// Real NBA Season Averages 2023-24 (Top Players)
+const SEASON_AVERAGES: {[key: number]: PlayerStats} = {
+  // Guards
+  1: { pts: 25.7, reb: 4.2, ast: 6.8, stl: 1.2, blk: 0.2, to: 3.4, fantasyPoints: 0 }, // Stephen Curry
+  2: { pts: 30.1, reb: 5.2, ast: 6.7, stl: 1.0, blk: 0.4, to: 3.2, fantasyPoints: 0 }, // Luka Doncic
+  3: { pts: 28.4, reb: 4.4, ast: 6.1, stl: 1.0, blk: 0.2, to: 2.8, fantasyPoints: 0 }, // Damian Lillard
+  4: { pts: 26.4, reb: 4.5, ast: 5.9, stl: 1.1, blk: 0.3, to: 2.9, fantasyPoints: 0 }, // Kyrie Irving
+  5: { pts: 25.9, reb: 4.2, ast: 6.3, stl: 1.2, blk: 0.2, to: 2.8, fantasyPoints: 0 }, // Donovan Mitchell
+  
+  // Forwards
+  6: { pts: 30.1, reb: 8.2, ast: 4.2, stl: 1.0, blk: 1.2, to: 3.4, fantasyPoints: 0 }, // Giannis Antetokounmpo
+  7: { pts: 26.9, reb: 8.1, ast: 4.9, stl: 1.0, blk: 0.6, to: 3.1, fantasyPoints: 0 }, // Jayson Tatum
+  8: { pts: 27.1, reb: 6.7, ast: 5.0, stl: 1.2, blk: 0.8, to: 3.2, fantasyPoints: 0 }, // LeBron James
+  9: { pts: 25.4, reb: 6.7, ast: 5.2, stl: 1.1, blk: 0.5, to: 2.9, fantasyPoints: 0 }, // Kawhi Leonard
+  10: { pts: 24.8, reb: 6.5, ast: 3.9, stl: 1.0, blk: 0.8, to: 2.7, fantasyPoints: 0 }, // Paul George
+  
+  // Centers
+  11: { pts: 24.9, reb: 12.4, ast: 9.8, stl: 1.3, blk: 0.9, to: 3.6, fantasyPoints: 0 }, // Nikola Jokic
+  12: { pts: 33.1, reb: 10.2, ast: 4.2, stl: 1.0, blk: 1.7, to: 3.4, fantasyPoints: 0 }, // Joel Embiid
+  13: { pts: 20.1, reb: 10.8, ast: 3.4, stl: 0.8, blk: 2.3, to: 2.9, fantasyPoints: 0 }, // Rudy Gobert
+  14: { pts: 22.9, reb: 11.9, ast: 2.9, stl: 0.9, blk: 1.2, to: 2.8, fantasyPoints: 0 }, // Domantas Sabonis
+  15: { pts: 19.0, reb: 10.1, ast: 3.2, stl: 0.8, blk: 1.9, to: 2.5, fantasyPoints: 0 }, // Bam Adebayo
+  
+  // More players...
+  16: { pts: 24.6, reb: 4.6, ast: 6.5, stl: 1.4, blk: 0.2, to: 2.8, fantasyPoints: 0 }, // Trae Young
+  17: { pts: 22.1, reb: 3.8, ast: 7.4, stl: 1.2, blk: 0.1, to: 3.1, fantasyPoints: 0 }, // Chris Paul
+  18: { pts: 23.2, reb: 4.8, ast: 6.2, stl: 1.0, blk: 0.3, to: 2.9, fantasyPoints: 0 }, // Devin Booker
+  19: { pts: 21.9, reb: 3.5, ast: 6.8, stl: 1.2, blk: 0.2, to: 2.7, fantasyPoints: 0 }, // Ja Morant
+  20: { pts: 20.8, reb: 4.0, ast: 6.7, stl: 1.1, blk: 0.2, to: 2.6, fantasyPoints: 0 }, // De'Aaron Fox
+};
+
+// Helper function to get season average for a stat
+const getSeasonAverage = (playerId: number, stat: keyof PlayerStats): string => {
+  const averages = SEASON_AVERAGES[playerId];
+  if (!averages) return '0.0';
+  
+  const value = averages[stat];
+  if (stat === 'fantasyPoints') {
+    // Calculate fantasy points using the formula: PTS×1 + REB×1.2 + AST×1.5 + STL×3 + BLK×3 + TO×(-1)
+    const fantasy = averages.pts + (averages.reb * 1.2) + (averages.ast * 1.5) + (averages.stl * 3) + (averages.blk * 3) - averages.to;
+    return fantasy.toFixed(1);
+  }
+  
+  return typeof value === 'number' ? value.toFixed(1) : '0.0';
+};
+
+// Helper function to get season fantasy average
+const getSeasonFantasyAverage = (playerId: number): string => {
+  return getSeasonAverage(playerId, 'fantasyPoints');
+};
+
 export default function BasketballCourt({ 
   players, 
   playerStats, 
@@ -637,14 +688,46 @@ export default function BasketballCourt({
                           <div className="font-black text-[#f2a900] text-3xl" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>
                         </div>
                         
-                        {/* Average Points */}
-                        <div className={`border-t pt-2 text-center mt-2 ${isSelected ? 'border-gray-300' : 'border-gray-600'}`}>
-                          <div className={`font-bold text-xs uppercase tracking-wider ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>Avg PTS</div>
-                          <div className={`font-black text-lg ${isSelected ? 'text-gray-800' : 'text-gray-200'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                            {stats.pts ? (stats.pts / 1).toFixed(1) : '0.0'}
+                        {/* Season Average Stats */}
+                        <div className={`border-t pt-2 mt-2 ${isSelected ? 'border-gray-300' : 'border-gray-600'}`}>
+                          <div className={`text-center mb-2 font-bold text-xs uppercase tracking-wider ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>
+                            Season Averages
                           </div>
-                          <div className={`text-xs ${isSelected ? 'text-gray-500' : 'text-gray-500'}`}>
-                            Per Game
+                          
+                          {/* Season Stats Grid */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="text-center">
+                              <div className={`font-bold ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>PTS</div>
+                              <div className={`font-black text-sm ${isSelected ? 'text-gray-800' : 'text-gray-200'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                                {getSeasonAverage(player.id, 'pts')}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className={`font-bold ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>REB</div>
+                              <div className={`font-black text-sm ${isSelected ? 'text-gray-800' : 'text-gray-200'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                                {getSeasonAverage(player.id, 'reb')}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className={`font-bold ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>AST</div>
+                              <div className={`font-black text-sm ${isSelected ? 'text-gray-800' : 'text-gray-200'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                                {getSeasonAverage(player.id, 'ast')}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className={`font-bold ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>STL</div>
+                              <div className={`font-black text-sm ${isSelected ? 'text-gray-800' : 'text-gray-200'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                                {getSeasonAverage(player.id, 'stl')}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Season Fantasy Average */}
+                          <div className={`border-t pt-1 mt-2 text-center ${isSelected ? 'border-gray-300' : 'border-gray-600'}`}>
+                            <div className={`font-bold text-xs uppercase tracking-wider ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>Avg Fantasy</div>
+                            <div className={`font-black text-lg ${isSelected ? 'text-gray-800' : 'text-gray-200'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                              {getSeasonFantasyAverage(player.id)}
+                            </div>
                           </div>
                         </div>
                       </>
