@@ -636,6 +636,17 @@ export default function BasketballCourt({
                           <div className="font-black text-[#f2a900] text-sm uppercase tracking-wider">Fantasy PTS</div>
                           <div className="font-black text-[#f2a900] text-3xl" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>{stats.fantasyPoints}</div>
                         </div>
+                        
+                        {/* Average Points */}
+                        <div className={`border-t pt-2 text-center mt-2 ${isSelected ? 'border-gray-300' : 'border-gray-600'}`}>
+                          <div className={`font-bold text-xs uppercase tracking-wider ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>Avg PTS</div>
+                          <div className={`font-black text-lg ${isSelected ? 'text-gray-800' : 'text-gray-200'}`} style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                            {stats.pts ? (stats.pts / 1).toFixed(1) : '0.0'}
+                          </div>
+                          <div className={`text-xs ${isSelected ? 'text-gray-500' : 'text-gray-500'}`}>
+                            Per Game
+                          </div>
+                        </div>
                       </>
                     ) : (
                       /* No Live Stats Available */

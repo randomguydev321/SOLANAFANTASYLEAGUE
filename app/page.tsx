@@ -275,7 +275,7 @@ export default function Home() {
     }
   };
 
-  // Daily Matchup System
+  // Daily Matchup System - EVERY wallet gets an opponent within 24 hours
   const generateDailyMatchup = (userWallet: string) => {
     // Get all registered users (in a real app, this would come from a database)
     const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -284,8 +284,28 @@ export default function Home() {
     const otherUsers = allUsers.filter((user: string) => user !== userWallet);
     
     if (otherUsers.length === 0) {
-      // If no other users, return null to indicate no matchup available
-      return null;
+      // If no other users, create a bot opponent to ensure everyone gets matched
+      const botOpponents = [
+        'Bot_LeBron_James',
+        'Bot_Stephen_Curry', 
+        'Bot_Kevin_Durant',
+        'Bot_Giannis_Antetokounmpo',
+        'Bot_Luka_Doncic',
+        'Bot_Jayson_Tatum',
+        'Bot_Nikola_Jokic',
+        'Bot_Joel_Embiid'
+      ];
+      
+      const randomBot = botOpponents[Math.floor(Math.random() * botOpponents.length)];
+      
+      return {
+        opponent: randomBot,
+        opponentWallet: `bot_${randomBot.toLowerCase().replace('bot_', '')}`,
+        isBot: true,
+        matchupId: `matchup_${Date.now()}`,
+        startTime: new Date().toISOString(),
+        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      };
     }
     
     // Randomly select an opponent and get their username
@@ -1191,10 +1211,7 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  {userMatchup ? (
-                    // Show matchup when opponent is available
-                    <>
-                  
+                  {/* Always show matchup - everyone gets an opponent */}
                   <div className="grid grid-cols-2 gap-6 mb-4">
                     <div className="text-center">
                       <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">You</div>
@@ -1204,15 +1221,21 @@ export default function Home() {
                       <div className="text-gray-400 text-xs mt-1">
                         {userProfile.wins}W - {userProfile.losses}L
                       </div>
+                      <div className="text-[#f2a900] text-xs font-bold mt-1">
+                        Total: {userProfile.wins + userProfile.losses} Games
+                      </div>
                     </div>
                     
                     <div className="text-center">
                       <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">vs</div>
                       <div className="bg-white text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                        {userMatchup.isBot ? userMatchup.opponent : formatAddress(userMatchup.opponentWallet)}
+                        {userMatchup?.opponent || 'Loading...'}
                       </div>
                       <div className="text-gray-400 text-xs mt-1">
-                        {userMatchup.isBot ? 'Bot Opponent' : 'Random Player'}
+                        {userMatchup?.isBot ? 'Bot Opponent' : 'Random Player'}
+                      </div>
+                      <div className="text-gray-400 text-xs">
+                        {userMatchup?.isBot ? 'NBA Legend Bot' : 'Real Solana User'}
                       </div>
                     </div>
                   </div>
@@ -1224,7 +1247,7 @@ export default function Home() {
                     <div className="text-gray-400 text-xs">
                       {shuffleMode === 'every-game' ? 'New opponent every game' : 
                        shuffleMode === 'hourly' ? 'New opponent every hour' : 
-                       'New opponent every 24 hours'}
+                       'New random opponent every 24 hours'}
                     </div>
                   </div>
                   
@@ -1253,22 +1276,6 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                    </>
-                  ) : (
-            // Show waiting message when no opponent is available
-            <div className="text-center py-8">
-              <div className="text-6xl mb-4">⏳</div>
-              <h3 className="text-white text-xl font-bold mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                Waiting for Opponents
-              </h3>
-              <p className="text-gray-300 text-sm mb-4">
-                You're the first player! Share the game with friends to start competing.
-              </p>
-              <div className="text-gray-400 text-xs">
-                Real opponents will appear here when they connect their wallets
-              </div>
-            </div>
-          )}
                 </div>
               </div>
             </div>
