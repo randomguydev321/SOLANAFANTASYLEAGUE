@@ -177,6 +177,7 @@ export default function Home() {
   } | null>(null);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [tempUsername, setTempUsername] = useState('');
+  const [shuffleMode, setShuffleMode] = useState<'daily' | 'hourly' | 'every-game'>('every-game');
   const SALARY_CAP = 20; // 20 tokens total
 
   // Set client-side flag to prevent hydration mismatches
@@ -278,14 +279,14 @@ export default function Home() {
     // Get all registered users (in a real app, this would come from a database)
     const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
     
-    // Filter out current user
+    // Filter out current user and get their profiles
     const otherUsers = allUsers.filter((user: string) => user !== userWallet);
     
     if (otherUsers.length === 0) {
-      // If no other users, create a bot opponent
+      // If no other users, create a bot opponent with Solana-style address
       return {
         opponent: 'Bot_Opponent_001',
-        opponentWallet: 'BotWallet_001',
+        opponentWallet: 'So11111111111111111111111111111111111111112', // Solana system program address
         isBot: true,
         matchupId: `matchup_${Date.now()}`,
         startTime: new Date().toISOString(),
@@ -293,12 +294,13 @@ export default function Home() {
       };
     }
     
-    // Randomly select an opponent
-    const randomOpponent = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+    // Randomly select an opponent and get their username
+    const randomOpponentWallet = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+    const opponentProfile = loadUserProfile(randomOpponentWallet);
     
     return {
-      opponent: randomOpponent,
-      opponentWallet: randomOpponent,
+      opponent: opponentProfile ? opponentProfile.username : formatAddress(randomOpponentWallet),
+      opponentWallet: randomOpponentWallet,
       isBot: false,
       matchupId: `matchup_${Date.now()}`,
       startTime: new Date().toISOString(),
@@ -306,18 +308,55 @@ export default function Home() {
     };
   };
 
-  const saveDailyMatchup = (userWallet: string, matchup: any) => {
-    const today = new Date().toDateString();
-    localStorage.setItem(`dailyMatchup_${userWallet}_${today}`, JSON.stringify(matchup));
+  const saveMatchup = (userWallet: string, matchup: any, mode: string) => {
+    const now = new Date();
+    let key = '';
+    
+    switch (mode) {
+      case 'every-game':
+        key = `matchup_${userWallet}_${now.getTime()}`; // Unique for each game
+        break;
+      case 'hourly':
+        key = `matchup_${userWallet}_${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
+        break;
+      case 'daily':
+      default:
+        key = `matchup_${userWallet}_${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+        break;
+    }
+    
+    localStorage.setItem(key, JSON.stringify(matchup));
   };
 
-  const loadDailyMatchup = (userWallet: string) => {
-    const today = new Date().toDateString();
-    const saved = localStorage.getItem(`dailyMatchup_${userWallet}_${today}`);
+  const loadMatchup = (userWallet: string, mode: string) => {
+    const now = new Date();
+    let key = '';
+    
+    switch (mode) {
+      case 'every-game':
+        // For every-game mode, we don't load old matchups - always generate new
+        return null;
+      case 'hourly':
+        key = `matchup_${userWallet}_${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
+        break;
+      case 'daily':
+      default:
+        key = `matchup_${userWallet}_${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+        break;
+    }
+    
+    const saved = localStorage.getItem(key);
     if (saved) {
       return JSON.parse(saved);
     }
     return null;
+  };
+
+  const shuffleOpponent = (userWallet: string) => {
+    const newMatchup = generateDailyMatchup(userWallet);
+    saveMatchup(userWallet, newMatchup, shuffleMode);
+    setUserMatchup(newMatchup);
+    return newMatchup;
   };
 
   // Initialize empty leaderboard - will be populated with real data
@@ -393,12 +432,12 @@ export default function Home() {
         // Existing user - load their profile and daily matchup
         setUserProfile(existingProfile);
         
-        // Check for today's matchup
-        let dailyMatchup = loadDailyMatchup(walletAddress);
-        if (!dailyMatchup) {
-          // Generate new daily matchup
-          dailyMatchup = generateDailyMatchup(walletAddress);
-          saveDailyMatchup(walletAddress, dailyMatchup);
+        // Check for current matchup based on shuffle mode
+        let currentMatchup = loadMatchup(walletAddress, shuffleMode);
+        if (!currentMatchup) {
+          // Generate new matchup
+          currentMatchup = generateDailyMatchup(walletAddress);
+          saveMatchup(walletAddress, currentMatchup, shuffleMode);
           
           // Add user to registered users list
           const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -408,7 +447,7 @@ export default function Home() {
           }
         }
         
-        setUserMatchup(dailyMatchup);
+        setUserMatchup(currentMatchup);
       }
       
       loadData();
@@ -608,6 +647,11 @@ export default function Home() {
       );
       
       if (success) {
+        // Shuffle opponent if in "every-game" mode
+        if (shuffleMode === 'every-game') {
+          shuffleOpponent(wallet.publicKey.toString());
+        }
+        
         alert(`✅ LINEUP REGISTERED! Your team score: ${teamScore} fantasy points`);
         // Refresh tournament data
         setCurrentTournament(tournamentService.getCurrentTournament());
@@ -765,7 +809,7 @@ export default function Home() {
                       </p>
                     </div>
                   )}
-                  <div className="px-6 py-3 bg-[#0a0e27] border-4 border-[#f2a900] transform -skew-x-6 shadow-xl">
+                <div className="px-6 py-3 bg-[#0a0e27] border-4 border-[#f2a900] transform -skew-x-6 shadow-xl">
                     <p className="text-[#f2a900] font-mono text-sm font-bold skew-x-6">{formatAddress(wallet.publicKey?.toString() || '')}</p>
                   </div>
                 </div>
@@ -1131,9 +1175,20 @@ export default function Home() {
             <div className="mb-8">
               <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6 transform -skew-x-3">
                 <div className="skew-x-3">
-                  <h3 className="text-[#f2a900] text-2xl font-black mb-4 text-center uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                    🏀 Daily Matchup
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[#f2a900] text-2xl font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                      🏀 Live Matchup
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => shuffleOpponent(wallet.publicKey!.toString())}
+                        className="bg-[#f2a900] text-[#0a0e27] px-3 py-1 text-xs font-black uppercase tracking-wider hover:bg-white transition-colors"
+                        style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+                      >
+                        🔄 Shuffle
+                      </button>
+                    </div>
+                  </div>
                   
                   <div className="grid grid-cols-2 gap-6 mb-4">
                     <div className="text-center">
@@ -1157,12 +1212,40 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="text-center">
+                  <div className="text-center mb-4">
                     <div className="text-gray-300 text-sm mb-2">
                       Matchup expires in: <span className="text-[#f2a900] font-bold">{Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m</span>
                     </div>
                     <div className="text-gray-400 text-xs">
-                      New matchup every 24 hours
+                      {shuffleMode === 'every-game' ? 'New opponent every game' : 
+                       shuffleMode === 'hourly' ? 'New opponent every hour' : 
+                       'New opponent every 24 hours'}
+                    </div>
+                  </div>
+                  
+                  {/* Shuffle Mode Selector */}
+                  <div className="border-t border-gray-600 pt-4">
+                    <div className="text-center mb-3">
+                      <div className="text-white font-bold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                        Shuffle Mode
+                      </div>
+                      <div className="flex gap-2 justify-center">
+                        {(['every-game', 'hourly', 'daily'] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            onClick={() => setShuffleMode(mode)}
+                            className={`px-3 py-1 text-xs font-black uppercase tracking-wider transition-colors ${
+                              shuffleMode === mode 
+                                ? 'bg-[#f2a900] text-[#0a0e27]' 
+                                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                            }`}
+                            style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+                          >
+                            {mode === 'every-game' ? 'Per Game' : 
+                             mode === 'hourly' ? 'Hourly' : 'Daily'}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
