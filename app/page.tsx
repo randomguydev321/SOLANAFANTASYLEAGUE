@@ -141,6 +141,7 @@ export default function Home() {
   const wallet = useWallet();
   const { connection } = useConnection();
   const [language] = useState<'en'>('en');
+  const [isClient, setIsClient] = useState(false);
   const [selectedByPosition, setSelectedByPosition] = useState<{
     PG: number | null;
     SG: number | null;
@@ -160,6 +161,11 @@ export default function Home() {
   const [userMatchup, setUserMatchup] = useState<any>(null);
   const [timeUntilDeadline, setTimeUntilDeadline] = useState<number>(0);
   const SALARY_CAP = 20; // 20 tokens total
+
+  // Set client-side flag to prevent hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Simple translation function - English only
   const t = (enText: string) => enText;
@@ -320,8 +326,8 @@ export default function Home() {
       try {
         // Try to load live stats from backend API first
         try {
-          // Use environment variable or fallback to localhost
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+          // Always use localhost for development
+          const apiUrl = 'http://localhost:3001';
           const response = await fetch(`${apiUrl}/api/live-stats`);
           if (response.ok) {
             const liveStats = await response.json();
@@ -534,6 +540,18 @@ export default function Home() {
   const formatAddress = (address: string) => `${address.slice(0,6)}...${address.slice(-4)}`;
 
   const selectedCount = Object.values(selectedByPosition).filter(id => id !== null).length;
+
+  // Don't render wallet-dependent content until client-side
+  if (!isClient) {
+    return (
+      <div className="min-h-screen relative flex items-center justify-center" style={{ background: '#0a0e27' }}>
+        <div className="text-center">
+          <div className="text-6xl mb-4">🏀</div>
+          <div className="text-white text-2xl font-bold">Loading Solana Fantasy League...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative" style={{ background: '#0a0e27' }}>
