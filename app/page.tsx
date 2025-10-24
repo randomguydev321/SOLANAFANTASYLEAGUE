@@ -275,7 +275,7 @@ export default function Home() {
     }
   };
 
-  // Daily Matchup System - EVERY wallet gets an opponent within 24 hours
+  // Daily Matchup System - ONLY real users vs real users
   const generateDailyMatchup = (userWallet: string) => {
     // Get all registered users (in a real app, this would come from a database)
     const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -284,28 +284,8 @@ export default function Home() {
     const otherUsers = allUsers.filter((user: string) => user !== userWallet);
     
     if (otherUsers.length === 0) {
-      // If no other users, create a bot opponent to ensure everyone gets matched
-      const botOpponents = [
-        'Bot_LeBron_James',
-        'Bot_Stephen_Curry', 
-        'Bot_Kevin_Durant',
-        'Bot_Giannis_Antetokounmpo',
-        'Bot_Luka_Doncic',
-        'Bot_Jayson_Tatum',
-        'Bot_Nikola_Jokic',
-        'Bot_Joel_Embiid'
-      ];
-      
-      const randomBot = botOpponents[Math.floor(Math.random() * botOpponents.length)];
-      
-      return {
-        opponent: randomBot,
-        opponentWallet: `bot_${randomBot.toLowerCase().replace('bot_', '')}`,
-        isBot: true,
-        matchupId: `matchup_${Date.now()}`,
-        startTime: new Date().toISOString(),
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-      };
+      // If no other users, return null - no mock opponents
+      return null;
     }
     
     // Randomly select an opponent and get their username
@@ -1211,71 +1191,92 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  {/* Always show matchup - everyone gets an opponent */}
-                  <div className="grid grid-cols-2 gap-6 mb-4">
-                    <div className="text-center">
-                      <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">You</div>
-                      <div className="bg-[#f2a900] text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                        {userProfile.username}
+                  {userMatchup ? (
+                    // Show matchup when real opponent is available
+                    <>
+                      <div className="grid grid-cols-2 gap-6 mb-4">
+                        <div className="text-center">
+                          <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">You</div>
+                          <div className="bg-[#f2a900] text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                            {userProfile.username}
+                          </div>
+                          <div className="text-gray-400 text-xs mt-1">
+                            {userProfile.wins}W - {userProfile.losses}L
+                          </div>
+                          <div className="text-[#f2a900] text-xs font-bold mt-1">
+                            Total: {userProfile.wins + userProfile.losses} Games
+                          </div>
+                        </div>
+                        
+                        <div className="text-center">
+                          <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">vs</div>
+                          <div className="bg-white text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                            {userMatchup.opponent}
+                          </div>
+                          <div className="text-gray-400 text-xs mt-1">
+                            Real Solana User
+                          </div>
+                          <div className="text-gray-400 text-xs">
+                            Random Opponent
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-gray-400 text-xs mt-1">
-                        {userProfile.wins}W - {userProfile.losses}L
+                      
+                      <div className="text-center mb-4">
+                        <div className="text-gray-300 text-sm mb-2">
+                          Matchup expires in: <span className="text-[#f2a900] font-bold">{Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m</span>
+                        </div>
+                        <div className="text-gray-400 text-xs">
+                          {shuffleMode === 'every-game' ? 'New opponent every game' : 
+                           shuffleMode === 'hourly' ? 'New opponent every hour' : 
+                           'New random opponent every 24 hours'}
+                        </div>
                       </div>
-                      <div className="text-[#f2a900] text-xs font-bold mt-1">
-                        Total: {userProfile.wins + userProfile.losses} Games
+                      
+                      {/* Shuffle Mode Selector */}
+                      <div className="border-t border-gray-600 pt-4">
+                        <div className="text-center mb-3">
+                          <div className="text-white font-bold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                            Shuffle Mode
+                          </div>
+                          <div className="flex gap-2 justify-center">
+                            {(['every-game', 'hourly', 'daily'] as const).map((mode) => (
+                              <button
+                                key={mode}
+                                onClick={() => setShuffleMode(mode)}
+                                className={`px-3 py-1 text-xs font-black uppercase tracking-wider transition-colors ${
+                                  shuffleMode === mode 
+                                    ? 'bg-[#f2a900] text-[#0a0e27]' 
+                                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                                }`}
+                                style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+                              >
+                                {mode === 'every-game' ? 'Per Game' : 
+                                 mode === 'hourly' ? 'Hourly' : 'Daily'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // Show waiting message when no real opponents available
+                    <div className="text-center py-8">
+                      <div className="text-6xl mb-4">⏳</div>
+                      <h3 className="text-white text-xl font-bold mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                        Waiting for Real Opponents
+                      </h3>
+                      <p className="text-gray-300 text-sm mb-4">
+                        You're the first player! Share the game with friends to start competing against real Solana users.
+                      </p>
+                      <div className="text-gray-400 text-xs mb-4">
+                        No bots or fake opponents - only real wallet vs wallet matchups!
+                      </div>
+                      <div className="bg-[#f2a900] text-[#0a0e27] px-4 py-2 rounded-lg font-black text-sm inline-block" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                        {userProfile.username} - Ready to Compete!
                       </div>
                     </div>
-                    
-                    <div className="text-center">
-                      <div className="text-white font-bold text-sm mb-2 uppercase tracking-wider">vs</div>
-                      <div className="bg-white text-[#0a0e27] px-4 py-2 rounded-lg font-black text-lg" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                        {userMatchup?.opponent || 'Loading...'}
-                      </div>
-                      <div className="text-gray-400 text-xs mt-1">
-                        {userMatchup?.isBot ? 'Bot Opponent' : 'Random Player'}
-                      </div>
-                      <div className="text-gray-400 text-xs">
-                        {userMatchup?.isBot ? 'NBA Legend Bot' : 'Real Solana User'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-center mb-4">
-                    <div className="text-gray-300 text-sm mb-2">
-                      Matchup expires in: <span className="text-[#f2a900] font-bold">{Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m</span>
-                    </div>
-                    <div className="text-gray-400 text-xs">
-                      {shuffleMode === 'every-game' ? 'New opponent every game' : 
-                       shuffleMode === 'hourly' ? 'New opponent every hour' : 
-                       'New random opponent every 24 hours'}
-                    </div>
-                  </div>
-                  
-                  {/* Shuffle Mode Selector */}
-                  <div className="border-t border-gray-600 pt-4">
-                    <div className="text-center mb-3">
-                      <div className="text-white font-bold text-sm uppercase tracking-wider mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                        Shuffle Mode
-                      </div>
-                      <div className="flex gap-2 justify-center">
-                        {(['every-game', 'hourly', 'daily'] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            onClick={() => setShuffleMode(mode)}
-                            className={`px-3 py-1 text-xs font-black uppercase tracking-wider transition-colors ${
-                              shuffleMode === mode 
-                                ? 'bg-[#f2a900] text-[#0a0e27]' 
-                                : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                            }`}
-                            style={{ fontFamily: 'Bebas Neue, sans-serif' }}
-                          >
-                            {mode === 'every-game' ? 'Per Game' : 
-                             mode === 'hourly' ? 'Hourly' : 'Daily'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
