@@ -281,7 +281,7 @@ export default function Home() {
     // Calculate fantasy points for each player
     Object.keys(realPlayerStats).forEach(playerId => {
       const stats = realPlayerStats[parseInt(playerId)];
-      // Fantasy Points = PTS + (REB * 1.2) + (AST * 1.5) + (STL * 3) + (BLK * 3) + (TO * -1)
+        // Fantasy Points = PTS + (REB * 1.2) + (AST * 1.5) + (STL * 3) + (BLK * 3) + (TO * -1)
       stats.fantasyPoints = Math.floor(
         stats.pts + 
         (stats.reb * 1.2) + 
@@ -365,21 +365,8 @@ export default function Home() {
         
         // Update player stats with live data
         const updatedPlayerStats: {[key: number]: PlayerStats} = {};
-        stats.forEach(player => {
-          const playerId = parseInt(player.playerId);
-          if (playerId) {
-            updatedPlayerStats[playerId] = {
-              pts: player.pts,
-              reb: player.reb,
-              ast: player.ast,
-              stl: player.stl,
-              blk: player.blk,
-              to: player.to,
-              fantasyPoints: player.fantasyPoints
-            };
-          }
-        });
-        setPlayerStats(updatedPlayerStats);
+        // Note: liveStats will be updated via setLiveStats above, 
+        // this will be handled in a separate useEffect that watches liveStats state
         
       } catch (error) {
         console.error('Error loading live data:', error);
@@ -394,6 +381,28 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  // Update player stats when liveStats changes
+  useEffect(() => {
+    if (liveStats && liveStats.length > 0) {
+      const updatedPlayerStats: {[key: number]: PlayerStats} = {};
+      liveStats.forEach(player => {
+        const playerId = parseInt(player.playerId);
+        if (playerId) {
+          updatedPlayerStats[playerId] = {
+            pts: player.pts,
+            reb: player.reb,
+            ast: player.ast,
+            stl: player.stl,
+            blk: player.blk,
+            to: player.turnovers,
+            fantasyPoints: player.fantasyPoints
+          };
+        }
+      });
+      setPlayerStats(updatedPlayerStats);
+    }
+  }, [liveStats]);
+
   const connectWallet = async () => {
     try {
       if (!wallet.wallet) {
@@ -403,8 +412,8 @@ export default function Home() {
         return;
       }
       await wallet.connect();
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
+      } catch (error) {
+        console.error('Error connecting wallet:', error);
       alert('Failed to connect wallet. Please make sure you have Phantom or Solflare installed.');
     }
   };
