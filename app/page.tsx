@@ -320,7 +320,9 @@ export default function Home() {
       try {
         // Try to load live stats from backend API first
         try {
-          const response = await fetch('http://localhost:3001/api/live-stats');
+          // Use environment variable or fallback to localhost
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+          const response = await fetch(`${apiUrl}/api/live-stats`);
           if (response.ok) {
             const liveStats = await response.json();
             setLiveStats(liveStats);

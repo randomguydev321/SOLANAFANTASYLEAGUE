@@ -17,10 +17,9 @@ export default function Providers({
   // You can also provide a custom RPC endpoint
   const endpoint = useMemo(() => clusterApiUrl('devnet'), []);
 
-  // Use standard wallet adapters to avoid warnings
+  // Use only Solana-specific wallet adapters
   const wallets = useMemo(
     () => [
-      // Remove PhantomWalletAdapter as it's now a standard wallet
       new SolflareWalletAdapter(),
     ],
     []
