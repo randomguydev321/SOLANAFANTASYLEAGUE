@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Teko:wght@300;400;500;600;700&family=Rajdhani:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NBA x BNB CRYPTO THEME - BOLD & UNIQUE */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    background: #0a0e27;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Animated court lines background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+      repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(242, 169, 0, 0.02) 49px, rgba(242, 169, 0, 0.02) 50px),
+      repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(242, 169, 0, 0.02) 49px, rgba(242, 169, 0, 0.02) 50px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Moving chain pattern */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f2a900' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    animation: chainMove 60s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+}
+
+@keyframes chainMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-30px, -30px); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 5px #f2a900, 0 0 10px #f2a900, 0 0 15px #f2a900; }
+  50% { box-shadow: 0 0 10px #f2a900, 0 0 20px #f2a900, 0 0 30px #f2a900; }
+}
+
+@keyframes borderRun {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 200%; }
+}
+
+@layer components {
+  /* BNB Hexagon Pattern */
+  .bnb-hex-pattern {
+    background-color: #0a0e27;
+    background-image: 
+      linear-gradient(30deg, #f2a900 12%, transparent 12.5%, transparent 87%, #f2a900 87.5%, #f2a900),
+      linear-gradient(150deg, #f2a900 12%, transparent 12.5%, transparent 87%, #f2a900 87.5%, #f2a900),
+      linear-gradient(30deg, #f2a900 12%, transparent 12.5%, transparent 87%, #f2a900 87.5%, #f2a900),
+      linear-gradient(150deg, #f2a900 12%, transparent 12.5%, transparent 87%, #f2a900 87.5%, #f2a900);
+    background-size: 80px 140px;
+    background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+    opacity: 0.03;
+  }
+
+  /* NBA Court Wood Texture */
+  .court-wood {
+    background: linear-gradient(45deg, #8b4513 25%, transparent 25%, transparent 75%, #8b4513 75%, #8b4513),
+                linear-gradient(45deg, #8b4513 25%, transparent 25%, transparent 75%, #8b4513 75%, #8b4513);
+    background-size: 4px 4px;
+    background-position: 0 0, 2px 2px;
+    background-color: #c19a6b;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0e27;
+  border-left: 2px solid #f2a900;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #f2a900;
+  border: 2px solid #0a0e27;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ffc942;
+}
+
+/* Wallet Adapter Button Styling */
+.wallet-adapter-button {
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+}
+
+.wallet-adapter-button-trigger {
+  background: #f2a900 !important;
+  color: #0a0e27 !important;
+  border: 4px solid white !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
+  transform: skewX(-6deg) !important;
+  transition: all 0.3s ease !important;
+}
+
+.wallet-adapter-button-trigger:hover {
+  transform: skewX(-6deg) scale(1.05) !important;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4) !important;
+}
+
+.wallet-adapter-button-trigger:active {
+  transform: skewX(-6deg) scale(0.98) !important;
+}
+
+/* Wallet Modal Styling */
+.wallet-adapter-modal-wrapper {
+  background: rgba(10, 14, 39, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.wallet-adapter-modal {
+  background: #1a1f3a !important;
+  border: 4px solid #f2a900 !important;
+  border-radius: 0 !important;
+  transform: skewX(-2deg) !important;
+}
+
+.wallet-adapter-modal-title {
+  color: #f2a900 !important;
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: 2rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+}
+
+.wallet-adapter-modal-list {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.wallet-adapter-modal-list-item {
+  background: #0a0e27 !important;
+  border: 2px solid #f2a900 !important;
+  margin: 8px 0 !important;
+  transform: skewX(-1deg) !important;
+  transition: all 0.3s ease !important;
+}
+
+.wallet-adapter-modal-list-item:hover {
+  background: #f2a900 !important;
+  color: #0a0e27 !important;
+  transform: skewX(-1deg) scale(1.02) !important;
+}
+
+.wallet-adapter-modal-list-item button {
+  color: white !important;
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.wallet-adapter-modal-list-item:hover button {
+  color: #0a0e27 !important;
+}
