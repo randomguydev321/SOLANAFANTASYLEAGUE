@@ -7,7 +7,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import BasketballCourt from './components/BasketballCourt';
 import LiveGamesWidget from './components/LiveGamesWidget';
-import WeeklyMatchup from './components/WeeklyMatchup';
+// Removed WeeklyMatchup - using real user matchups only
 import NBAStatsService from './services/nbaStatsService';
 import TournamentService from './services/tournamentService';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -1113,7 +1113,7 @@ export default function Home() {
             {/* Right Sidebar - Live Games, Weekly Matchup & Leaderboard */}
             <div className="space-y-6">
               <LiveGamesWidget />
-              <WeeklyMatchup userAddress={wallet.publicKey?.toString() || ''} />
+              {/* WeeklyMatchup removed - using real user matchups only */}
               
               {/* Leaderboard */}
               <div className="relative">
