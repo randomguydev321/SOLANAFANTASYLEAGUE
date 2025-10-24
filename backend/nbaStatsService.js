@@ -39,32 +39,36 @@ class NBAStatsService {
            (stats.to * 1);
   }
 
-  // Fetch player stats from stats.nba.com
-  async fetchPlayerStatsFromNBAAPI(nbaPlayerId) {
+  // Fetch player season averages from NBA API (2025-2026 season)
+  async fetchPlayerSeasonAverages(nbaPlayerId) {
     try {
-      const today = new Date();
-      const season = today.getMonth() >= 9 ? `${today.getFullYear()}-${(today.getFullYear() + 1).toString().slice(-2)}` : `${today.getFullYear() - 1}-${today.getFullYear().toString().slice(-2)}`;
-      
-      const url = `https://stats.nba.com/stats/playergamelog?PlayerID=${nbaPlayerId}&Season=${season}&SeasonType=Regular%20Season`;
+      const season = '2025-26'; // Current NBA season
+      const url = `https://stats.nba.com/stats/playerdashboardbyyearoveryear?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerID=${nbaPlayerId}&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=Regular%20Season&ShotClockRange=&VsConference=&VsDivision=`;
       
       const response = await axios.get(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Referer': 'https://stats.nba.com/',
-          'Origin': 'https://stats.nba.com',
-          'Accept': 'application/json',
+          'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'en-US,en;q=0.9',
-          'x-nba-stats-origin': 'stats',
-          'x-nba-stats-token': 'true'
-        }
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Sec-Fetch-Dest': 'empty',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Site': 'same-site'
+        },
+        timeout: 10000
       });
       
       const data = response.data;
-      if (data.resultSets && data.resultSets[0].rowSet.length > 0) {
-        const lastGame = data.resultSets[0].rowSet[0];
+      if (data.resultSets && data.resultSets[0] && data.resultSets[0].rowSet.length > 0) {
+        const seasonStats = data.resultSets[0].rowSet[0];
         const headers = data.resultSets[0].headers;
 
-        const getStat = (header) => lastGame[headers.indexOf(header)] || 0;
+        const getStat = (header) => {
+          const index = headers.indexOf(header);
+          return index !== -1 ? parseFloat(seasonStats[index]) || 0 : 0;
+        };
 
         const stats = {
           pts: getStat('PTS'),
@@ -77,9 +81,9 @@ class NBAStatsService {
           fga: getStat('FGA'),
           ftm: getStat('FTM'),
           fta: getStat('FTA'),
-          gameDate: getStat('GAME_DATE'),
-          opponent: getStat('MATCHUP'),
-          isPlaying: true // Assume playing if stats are fetched
+          gamesPlayed: getStat('GP'),
+          minutes: getStat('MIN'),
+          isPlaying: getStat('GP') > 0 // Playing if games played > 0
         };
         
         const fantasyPoints = this.calculateFantasyPoints(stats);
@@ -87,7 +91,7 @@ class NBAStatsService {
       }
       return null;
     } catch (error) {
-      console.error(`Error fetching stats for player ${nbaPlayerId} from stats.nba.com:`, error.message);
+      console.error(`Error fetching season averages for player ${nbaPlayerId}:`, error.message);
       return null;
     }
   }
@@ -124,19 +128,19 @@ class NBAStatsService {
   async getLiveStats(forceRefresh = false) {
     const now = Date.now();
     const hasLiveGames = (await this.getLiveGameStatus()).some(game => game.gameStatus === 2);
-    const currentCacheDuration = hasLiveGames ? this.CACHE_DURATION : 5 * 60 * 1000; // 5 mins if no live games
+    const currentCacheDuration = 7 * 24 * 60 * 60 * 1000; // 7 days for season averages
 
     if (!forceRefresh && this.cachedStats.length > 0 && (now - this.lastFetchTime < currentCacheDuration)) {
       return this.cachedStats;
     }
 
-    console.log('Fetching new live NBA stats...');
+    console.log('Fetching 2025-2026 NBA season averages...');
     const allPlayers = await pool.query('SELECT id, nba_id, name, team, position, salary FROM players');
     const liveStatsPromises = allPlayers.rows.map(async (player) => {
       let stats = null;
       
-      // Try to fetch from NBA API
-      stats = await this.fetchPlayerStatsFromNBAAPI(player.nba_id);
+      // Try to fetch 2025-2026 season averages from NBA API
+      stats = await this.fetchPlayerSeasonAverages(player.nba_id);
 
       if (stats) {
         // Update DB

@@ -33,15 +33,9 @@ class StatsUpdater {
   setupCronJobs() {
     console.log('Setting up NBA stats update cron jobs...');
     
-    // Update stats every 5 minutes during NBA season
-    cron.schedule('*/5 * * * *', async () => {
-      console.log('Running scheduled NBA stats update...');
-      await this.updateStats();
-    });
-
-    // Update stats every 2 minutes during live games (6 PM - 2 AM EST)
-    cron.schedule('*/2 18-23,0-2 * * *', async () => {
-      console.log('Running live game stats update...');
+    // Update season averages weekly on Sundays at 6 AM EST
+    cron.schedule('0 6 * * 0', async () => {
+      console.log('Running weekly NBA season averages update...');
       await this.updateStats();
     }, {
       timezone: "America/New_York"
@@ -63,7 +57,7 @@ class StatsUpdater {
     }
 
     this.isRunning = true;
-    console.log('Starting NBA stats update...');
+    console.log('Starting NBA 2025-2026 season averages update...');
 
     try {
       const liveStats = await this.nbaStatsService.getLiveStats(true);
@@ -83,7 +77,7 @@ class StatsUpdater {
         );
       }
       
-      console.log('NBA stats update completed successfully');
+      console.log('NBA 2025-2026 season averages update completed successfully');
     } catch (error) {
       console.error('Error updating NBA stats:', error);
     } finally {
