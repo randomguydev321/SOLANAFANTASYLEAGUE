@@ -599,6 +599,34 @@ export default function Home() {
             </div>
             
             <div className="flex items-center gap-6">
+              {/* Navigation Links */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => {
+                    const leaderboardSection = document.getElementById('leaderboard-section');
+                    if (leaderboardSection) {
+                      leaderboardSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className="text-white hover:text-[#f2a900] font-bold text-sm uppercase tracking-wider transition-colors"
+                  style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+                >
+                  📊 Leaderboard
+                </button>
+                <button
+                  onClick={() => {
+                    const aboutSection = document.getElementById('about-section');
+                    if (aboutSection) {
+                      aboutSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className="text-white hover:text-[#f2a900] font-bold text-sm uppercase tracking-wider transition-colors"
+                  style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+                >
+                  ℹ️ About
+                </button>
+              </div>
+
               <div className="text-center">
                 <div className="text-white font-bold text-sm uppercase tracking-wider">Salary Cap</div>
                 <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
@@ -825,7 +853,7 @@ export default function Home() {
             {/* Sidebar */}
             <div className="space-y-8">
           {/* Leaderboard */}
-              <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6">
+              <div id="leaderboard-section" className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6">
                 <h3 className="text-[#f2a900] text-xl font-black uppercase tracking-wider mb-4" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   🏆 Leaderboard
                 </h3>
@@ -895,6 +923,29 @@ export default function Home() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* About Section */}
+          <div id="about-section" className="mt-12 bg-[#1a1f3a] border-4 border-[#f2a900] p-6">
+            <h3 className="text-[#f2a900] text-xl font-black uppercase tracking-wider mb-4" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+              ℹ️ About NBA Fantasy League
+            </h3>
+            <div className="space-y-4 text-gray-300">
+              <p>
+                <strong className="text-white">How it works:</strong> Build your ultimate NBA lineup with a 17-token salary cap. 
+                Get matched with random opponents every 24 hours and compete using real NBA player stats.
+              </p>
+              <p>
+                <strong className="text-white">Scoring:</strong> Points League format - PTS×1 + REB×1.2 + AST×1.5 + STL×3 + BLK×3 - TO×1
+              </p>
+              <p>
+                <strong className="text-white">Leaderboard:</strong> Your points accumulate over time. The more games you play, 
+                the higher you climb on the leaderboard!
+              </p>
+              <p>
+                <strong className="text-white">Free to Play:</strong> No entry fees, no hidden costs. Just pure NBA fantasy competition on Solana!
+              </p>
             </div>
           </div>
         </div>
