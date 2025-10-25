@@ -407,8 +407,8 @@ export default function Home() {
       return sum + (player?.salary || 0);
     }, 0);
 
-    if (totalSalary > 15) {
-      alert('Lineup exceeds salary cap of 15 tokens');
+    if (totalSalary > 17) {
+      alert('Lineup exceeds salary cap of 17 tokens');
       return;
     }
 
@@ -604,7 +604,7 @@ export default function Home() {
               <div className="text-center">
                 <div className="text-white font-bold text-sm uppercase tracking-wider">Salary Cap</div>
                 <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                  15 Tokens
+                  17 Tokens
                         </div>
                         </div>
               
@@ -757,7 +757,7 @@ export default function Home() {
                   const player = players.find(p => p.id === playerId);
                   return sum + (player?.salary || 0);
                 }, 0)}
-                salaryCap={15}
+                salaryCap={17}
                 isLocked={isTeamLocked}
                 opponentTeam={opponentTeam}
               />
@@ -782,7 +782,7 @@ export default function Home() {
                           {Object.values(lineup).reduce((sum, playerId) => {
                             const player = players.find(p => p.id === playerId);
                             return sum + (player?.salary || 0);
-                          }, 0)}/15
+                          }, 0)}/17
                         </div>
                       </div>
                     </div>
@@ -807,7 +807,7 @@ export default function Home() {
                                Object.values(lineup).reduce((sum, playerId) => {
                                  const player = players.find(p => p.id === playerId);
                                  return sum + (player?.salary || 0);
-                               }, 0) > 15}
+                               }, 0) > 17}
                       className="bg-[#f2a900] text-[#0a0e27] px-8 py-2 font-black uppercase tracking-wider hover:bg-white transition-colors disabled:bg-gray-600 disabled:text-gray-400"
                       style={{ fontFamily: 'Bebas Neue, sans-serif' }}
                     >
