@@ -372,14 +372,16 @@ export class TournamentService {
     return Math.max(0, timeRemaining);
   }
 
-  // Initialize with a default tournament (FREE - Everyone vs Everyone)
+  // Initialize with a default tournament (FREE - Single Tournament for All)
   initializeDefaultTournament(): void {
-    // Only create if no tournament exists
-    if (this.tournaments.size === 0) {
-      const tournament = this.createTournament("24-Hour NBA Fantasy League - Everyone vs Everyone", 0); // FREE entry
-      tournament.status = 'active'; // Make it always active
-      console.log('Created persistent FREE 24-hour tournament:', tournament.id);
-    }
+    // Clear any existing tournaments to ensure single tournament
+    this.tournaments.clear();
+    this.userLineups.clear();
+    
+    // Create single tournament
+    const tournament = this.createTournament("NBA Fantasy League - Single Tournament", 0); // FREE entry
+    tournament.status = 'active'; // Make it always active
+    console.log('Created single persistent tournament:', tournament.id);
   }
 }
 

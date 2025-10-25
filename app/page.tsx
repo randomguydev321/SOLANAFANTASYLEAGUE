@@ -581,9 +581,48 @@ export default function Home() {
     }
   }, [isClient]);
 
+  // Clear all mock data and ensure clean start
+  const clearMockData = () => {
+    // Clear any existing mock leaderboard data
+    const savedLeaderboard = localStorage.getItem('leaderboardData');
+    if (savedLeaderboard) {
+      const leaderboard = JSON.parse(savedLeaderboard);
+      // Remove any entries with mock/test data
+      const cleanLeaderboard = leaderboard.filter((entry: any) => 
+        !entry.username?.toLowerCase().includes('tester') &&
+        !entry.username?.toLowerCase().includes('test') &&
+        !entry.username?.toLowerCase().includes('mock') &&
+        !entry.wallet?.toLowerCase().includes('test')
+      );
+      localStorage.setItem('leaderboardData', JSON.stringify(cleanLeaderboard));
+    }
+    
+    // Clear any mock matchup data
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.includes('matchup_') || key.includes('matchupHistory_')) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          // Remove mock matchups
+          if (parsed.opponent?.toLowerCase().includes('tester') || 
+              parsed.opponent?.toLowerCase().includes('test') ||
+              parsed.opponent?.toLowerCase().includes('mock')) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+    });
+    
+    console.log('🧹 Mock data cleared - starting fresh!');
+  };
+
   // Load leaderboard from localStorage (real user data only)
   useEffect(() => {
     if (isClient) {
+      // Clear any mock data first
+      clearMockData();
+      
       // Load real leaderboard data from localStorage
       const savedLeaderboard = localStorage.getItem('leaderboardData');
       if (savedLeaderboard) {
