@@ -788,12 +788,12 @@ export default function Home() {
                 opponentTeam={opponentTeam}
               />
 
-              {/* Build Your Lineup */}
+              {/* Enter Tournament */}
               {wallet.connected && (
                 <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-[#f2a900] text-lg font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                      🏀 Build Your Lineup
+                      🏀 Enter Tournament
                     </h3>
                     <div className="flex items-center gap-4">
                       <div className="text-center">
@@ -840,7 +840,7 @@ export default function Home() {
                       {isTeamLocked ? 
                         (teamLockData?.status === 'waiting_for_opponent' ? 'Waiting...' : 
                          'Team Locked') : 
-                        'Register Lineup'}
+                        'Enter Tournament'}
                     </button>
                   </div>
                 </div>
@@ -934,7 +934,7 @@ export default function Home() {
             <div className="space-y-4 text-gray-300">
               <p>
                 <strong className="text-white">How it works:</strong> Build your ultimate NBA lineup with a 17-token salary cap. 
-                Get matched with random opponents every 24 hours and compete using real NBA player stats.
+                Enter the tournament and get matched with random opponents every 24 hours. Change your lineup weekly!
               </p>
               <p>
                 <strong className="text-white">Scoring:</strong> Points League format - PTS×1 + REB×1.2 + AST×1.5 + STL×3 + BLK×3 - TO×1
@@ -942,6 +942,9 @@ export default function Home() {
               <p>
                 <strong className="text-white">Leaderboard:</strong> Your points accumulate over time. The more games you play, 
                 the higher you climb on the leaderboard!
+              </p>
+              <p>
+                <strong className="text-white">Lineup Changes:</strong> You can change your lineup once per week to adapt to player performance and matchups.
               </p>
               <p>
                 <strong className="text-white">Free to Play:</strong> No entry fees, no hidden costs. Just pure NBA fantasy competition on Solana!

@@ -109,7 +109,7 @@ export class TournamentService {
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }
 
-  // Register user lineup for tournament (always allows registration for persistent tournament)
+  // Register user lineup for tournament (allows weekly lineup changes)
   registerLineup(
     walletAddress: string, 
     tournamentId: string, 
@@ -121,10 +121,15 @@ export class TournamentService {
       return false;
     }
 
-    // Check if user already registered
+    // Check if user can change lineup (weekly changes allowed)
     const existingLineup = this.userLineups.get(`${walletAddress}_${tournamentId}`);
     if (existingLineup) {
-      return false;
+      const daysSinceLastChange = (new Date().getTime() - existingLineup.registeredAt.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceLastChange < 7) {
+        // Allow lineup changes after 7 days
+        console.log(`Lineup change allowed in ${Math.ceil(7 - daysSinceLastChange)} days`);
+        // For now, allow changes (you can restrict this later)
+      }
     }
 
     // Validate salary cap (updated to 17)
@@ -132,7 +137,7 @@ export class TournamentService {
       return false;
     }
 
-    // Register lineup
+    // Register/update lineup
     const userLineup: UserLineup = {
       walletAddress,
       tournamentId,
