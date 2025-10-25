@@ -199,10 +199,8 @@ export default function Home() {
     if (isClient) {
       const tournamentService = TournamentService.getInstance();
       
-      // Initialize default tournament if none exists
-      if (!tournamentService.getCurrentTournament()) {
-        tournamentService.initializeDefaultTournament();
-      }
+      // Always initialize default tournament
+      tournamentService.initializeDefaultTournament();
       
       const activeTournament = tournamentService.getCurrentTournament();
       setCurrentTournament(activeTournament);
@@ -423,7 +421,7 @@ export default function Home() {
       const currentTournament = tournamentService.getCurrentTournament();
       
       if (!currentTournament) {
-        alert('No active tournament available. Please try again.');
+        alert('Tournament service not initialized. Please refresh the page.');
         return;
       }
       

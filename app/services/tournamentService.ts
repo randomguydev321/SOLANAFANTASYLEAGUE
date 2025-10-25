@@ -91,16 +91,12 @@ export class TournamentService {
     return tournament;
   }
 
-  // Get current active tournament
+  // Get current active tournament (always returns the persistent tournament)
   getCurrentTournament(): Tournament | null {
-    const now = new Date();
-    
-    for (const tournament of this.tournaments.values()) {
-      if (tournament.status === 'active' && 
-          tournament.startTime <= now && 
-          tournament.endTime > now) {
-        return tournament;
-      }
+    // Return the first tournament if it exists, or create one
+    const tournaments = Array.from(this.tournaments.values());
+    if (tournaments.length > 0) {
+      return tournaments[0]; // Return the persistent tournament
     }
     return null;
   }
@@ -113,7 +109,7 @@ export class TournamentService {
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }
 
-  // Register user lineup for tournament
+  // Register user lineup for tournament (always allows registration for persistent tournament)
   registerLineup(
     walletAddress: string, 
     tournamentId: string, 
@@ -121,14 +117,8 @@ export class TournamentService {
     totalSalary: number
   ): boolean {
     const tournament = this.tournaments.get(tournamentId);
-    if (!tournament || tournament.status !== 'upcoming') {
+    if (!tournament) {
       return false;
-    }
-
-    // Check if lineup deadline has passed
-    const now = new Date();
-    if (now > tournament.lineupDeadline) {
-      return false; // Too late to register
     }
 
     // Check if user already registered
@@ -137,8 +127,8 @@ export class TournamentService {
       return false;
     }
 
-    // Validate salary cap
-    if (totalSalary > 20) {
+    // Validate salary cap (updated to 17)
+    if (totalSalary > 17) {
       return false;
     }
 
@@ -157,9 +147,6 @@ export class TournamentService {
     if (!tournament.participants.includes(walletAddress)) {
       tournament.participants.push(walletAddress);
       tournament.prizePool += tournament.entryFee;
-      
-      // Try to create matchups as players register
-      this.createRandomMatchups(tournament);
     }
 
     return true;
@@ -382,8 +369,12 @@ export class TournamentService {
 
   // Initialize with a default tournament (FREE - Everyone vs Everyone)
   initializeDefaultTournament(): void {
-    const tournament = this.createTournament("24-Hour NBA Fantasy League - Everyone vs Everyone", 0); // FREE entry
-    console.log('Created default FREE 24-hour tournament:', tournament.id);
+    // Only create if no tournament exists
+    if (this.tournaments.size === 0) {
+      const tournament = this.createTournament("24-Hour NBA Fantasy League - Everyone vs Everyone", 0); // FREE entry
+      tournament.status = 'active'; // Make it always active
+      console.log('Created persistent FREE 24-hour tournament:', tournament.id);
+    }
   }
 }
 
