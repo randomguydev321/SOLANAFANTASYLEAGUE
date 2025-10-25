@@ -39,11 +39,19 @@ class NBAStatsService {
            (stats.to * 1);
   }
 
-  // Fetch player weekly stats from NBA API (2025-2026 season)
-  async fetchPlayerWeeklyStats(nbaPlayerId) {
+  // Fetch player daily game logs from NBA API (2025-2026 season)
+  async fetchPlayerDailyStats(nbaPlayerId) {
     try {
       const season = '2025-26'; // Current NBA season
-      const url = `https://stats.nba.com/stats/playerdashboardbyyearoveryear?DateFrom=&DateTo=&GameSegment=&LastNGames=7&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerID=${nbaPlayerId}&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=Regular%20Season&ShotClockRange=&VsConference=&VsDivision=`;
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Format dates for NBA API (YYYY-MM-DD)
+      const dateFrom = yesterday.toISOString().split('T')[0];
+      const dateTo = today.toISOString().split('T')[0];
+      
+      const url = `https://stats.nba.com/stats/playergamelog?DateFrom=${dateFrom}&DateTo=${dateTo}&LeagueID=00&PlayerID=${nbaPlayerId}&Season=${season}&SeasonType=Regular%20Season`;
       
       const response = await axios.get(url, {
         headers: {
@@ -62,15 +70,16 @@ class NBAStatsService {
       
       const data = response.data;
       if (data.resultSets && data.resultSets[0] && data.resultSets[0].rowSet.length > 0) {
-        const weeklyStats = data.resultSets[0].rowSet[0];
+        const gameLogs = data.resultSets[0].rowSet;
         const headers = data.resultSets[0].headers;
 
         const getStat = (header) => {
           const index = headers.indexOf(header);
-          return index !== -1 ? parseFloat(weeklyStats[index]) || 0 : 0;
+          return index !== -1 ? parseFloat(gameLogs[0][index]) || 0 : 0;
         };
 
-        const stats = {
+        // Get stats from the most recent game
+        const gameStats = {
           pts: getStat('PTS'),
           reb: getStat('REB'),
           ast: getStat('AST'),
@@ -81,17 +90,35 @@ class NBAStatsService {
           fga: getStat('FGA'),
           ftm: getStat('FTM'),
           fta: getStat('FTA'),
-          gamesPlayed: getStat('GP'),
           minutes: getStat('MIN'),
-          isPlaying: getStat('GP') > 0 // Playing if games played > 0
+          gamesPlayed: gameLogs.length, // Number of games in the date range
+          isPlaying: gameLogs.length > 0 // Playing if there are games in the date range
         };
         
-        const fantasyPoints = this.calculateFantasyPoints(stats);
-        return { ...stats, fantasyPoints };
+        // Calculate fantasy points from actual game performance
+        const fantasyPoints = this.calculateFantasyPoints(gameStats);
+        return { ...gameStats, fantasyPoints };
       }
-      return null;
+      
+      // If no games played, return zero stats
+      return {
+        pts: 0,
+        reb: 0,
+        ast: 0,
+        stl: 0,
+        blk: 0,
+        turnovers: 0,
+        fgm: 0,
+        fga: 0,
+        ftm: 0,
+        fta: 0,
+        minutes: 0,
+        gamesPlayed: 0,
+        isPlaying: false,
+        fantasyPoints: 0
+      };
     } catch (error) {
-      console.error(`Error fetching weekly stats for player ${nbaPlayerId}:`, error.message);
+      console.error(`Error fetching daily stats for player ${nbaPlayerId}:`, error.message);
       return null;
     }
   }
@@ -134,13 +161,13 @@ class NBAStatsService {
       return this.cachedStats;
     }
 
-    console.log('Fetching weekly NBA stats for 24-hour competition...');
+    console.log('Fetching daily NBA game logs for 24-hour competition...');
     const allPlayers = await pool.query('SELECT id, nba_id, name, team, position, salary FROM players');
     const liveStatsPromises = allPlayers.rows.map(async (player) => {
       let stats = null;
       
-      // Try to fetch weekly stats from NBA API (last 7 games)
-      stats = await this.fetchPlayerWeeklyStats(player.nba_id);
+      // Try to fetch daily stats from NBA API (actual games played)
+      stats = await this.fetchPlayerDailyStats(player.nba_id);
 
       if (stats) {
         // Update DB

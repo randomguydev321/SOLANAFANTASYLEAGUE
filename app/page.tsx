@@ -444,26 +444,27 @@ export default function Home() {
         localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
       }
 
-      // Lock team first - opponent will be assigned later
-      const lockData = {
+      // Register team but don't lock yet - wait for matchup
+      const teamData = {
         lineup: { ...lineup },
-        lockedAt: new Date().toISOString(),
-        unlockAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+        registeredAt: new Date().toISOString(),
         opponent: null, // No opponent yet - waiting for match
-        status: 'waiting_for_opponent' // Status: waiting_for_opponent, matched, completed
+        status: 'waiting_for_opponent' // Status: waiting_for_opponent, matched, locked
       };
-      localStorage.setItem(`lockedTeam_${wallet.publicKey.toString()}`, JSON.stringify(lockData));
+      localStorage.setItem(`teamData_${wallet.publicKey.toString()}`, JSON.stringify(teamData));
 
       // Try to find an opponent immediately
       const matchup = generateDailyMatchup(wallet.publicKey.toString());
       if (matchup) {
-        // Update lock data with opponent
-        const updatedLockData = {
-          ...lockData,
+        // Team gets matched - now lock for 24 hours to make adjustments
+        const lockData = {
+          lineup: { ...lineup },
+          lockedAt: new Date().toISOString(),
+          unlockAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
           opponent: matchup.opponentWallet,
-          status: 'matched'
+          status: 'matched' // Status: matched, locked
         };
-        localStorage.setItem(`lockedTeam_${wallet.publicKey.toString()}`, JSON.stringify(updatedLockData));
+        localStorage.setItem(`lockedTeam_${wallet.publicKey.toString()}`, JSON.stringify(lockData));
         
         setUserMatchup(matchup);
         saveMatchup(wallet.publicKey.toString(), matchup);
@@ -484,9 +485,9 @@ export default function Home() {
       });
 
       if (matchup) {
-        alert(`Lineup registered successfully! Team locked and matched with opponent: ${matchup.opponent}. Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
+        alert(`Tournament entered successfully! You've been matched with opponent: ${matchup.opponent}. You have 24 hours to adjust your team before the game locks! Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
       } else {
-        alert(`Lineup registered successfully! Team locked and waiting for opponent... Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
+        alert(`Tournament entered successfully! Waiting for opponent... You can still adjust your team until matched. Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
       }
     } catch (error) {
       console.error('Error registering lineup:', error);
@@ -536,15 +537,17 @@ export default function Home() {
   useEffect(() => {
     if (isClient && wallet.publicKey) {
       const lockKey = `lockedTeam_${wallet.publicKey.toString()}`;
-      const lockData = localStorage.getItem(lockKey);
+      const teamKey = `teamData_${wallet.publicKey.toString()}`;
       
+      // Check if team is locked (matched and in 24-hour adjustment period)
+      const lockData = localStorage.getItem(lockKey);
       if (lockData) {
         const parsed = JSON.parse(lockData);
         const unlockTime = new Date(parsed.unlockAt);
         const now = new Date();
         
         if (now < unlockTime) {
-          // Team is still locked
+          // Team is still locked (in 24-hour adjustment period)
           setIsTeamLocked(true);
           setTeamLockData(parsed);
           
@@ -556,16 +559,25 @@ export default function Home() {
               const opponentParsed = JSON.parse(opponentData);
               setOpponentTeam(opponentParsed.lineup);
             }
-          } else {
-            // No opponent yet or still waiting
-            setOpponentTeam(null);
           }
         } else {
-          // Team is unlocked, clear lock data
+          // 24-hour adjustment period is over - team is now permanently locked
           localStorage.removeItem(lockKey);
           setIsTeamLocked(false);
           setTeamLockData(null);
           setOpponentTeam(null);
+        }
+      } else {
+        // Check if team is waiting for opponent (not locked yet)
+        const teamData = localStorage.getItem(teamKey);
+        if (teamData) {
+          const parsed = JSON.parse(teamData);
+          if (parsed.status === 'waiting_for_opponent') {
+            // Team is registered but not locked - can still make changes
+            setIsTeamLocked(false);
+            setTeamLockData(null);
+            setOpponentTeam(null);
+          }
         }
       }
     }
@@ -600,7 +612,7 @@ export default function Home() {
             
             <div className="flex items-center gap-6">
               {/* Navigation Links */}
-              <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
                 <button
                   onClick={() => {
                     const leaderboardSection = document.getElementById('leaderboard-section');
@@ -613,7 +625,7 @@ export default function Home() {
                 >
                   📊 Leaderboard
                 </button>
-                <button
+                <button 
                   onClick={() => {
                     const aboutSection = document.getElementById('about-section');
                     if (aboutSection) {
@@ -625,25 +637,25 @@ export default function Home() {
                 >
                   ℹ️ About
                 </button>
-              </div>
+                </div>
 
               <div className="text-center">
                 <div className="text-white font-bold text-sm uppercase tracking-wider">Salary Cap</div>
                 <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   17 Tokens
-                        </div>
-                        </div>
+                </div>
+              </div>
               
               <div className="text-center">
                 <div className="text-white font-bold text-sm uppercase tracking-wider">Team Score</div>
                 <div className="text-[#f2a900] text-2xl font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                   {calculateTeamScore().toFixed(1)}
-                  </div>
               </div>
-              
+            </div>
+            
               <WalletMultiButton />
                 </div>
-                </div>
+              </div>
         </header>
 
         {/* Username Modal */}
@@ -665,11 +677,11 @@ export default function Home() {
                 maxLength={20}
               />
               <div className="flex gap-3">
-                <button 
+              <button 
                   onClick={handleUsernameSubmit}
                   className="flex-1 bg-[#f2a900] text-[#0a0e27] py-3 font-black uppercase tracking-wider hover:bg-white transition-colors"
-                  style={{ fontFamily: 'Bebas Neue, sans-serif' }}
-                >
+                style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+              >
                   Save Username
                 </button>
               <button 
@@ -679,9 +691,9 @@ export default function Home() {
               >
                   Cancel
               </button>
-                </div>
             </div>
           </div>
+        </div>
         )}
 
         <div className="max-w-7xl mx-auto p-6">
@@ -692,12 +704,12 @@ export default function Home() {
               {wallet.connected && userProfile && (
           <div className="mb-8">
                   <div className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6 transform -skew-x-3">
-                    <div className="skew-x-3">
+                <div className="skew-x-3">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-[#f2a900] text-2xl font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                           🏀 Live Matchup
                   </h3>
-                    </div>
+            </div>
             
                       {userMatchup ? (
                         // Show matchup when real opponent is available
@@ -736,9 +748,9 @@ export default function Home() {
                     </div>
                             <div className="text-gray-400 text-xs">
                               New random opponent every 24 hours
-                  </div>
-                </div>
-                          
+            </div>
+          </div>
+
                         </>
                       ) : (
                         // Show waiting message when no real opponents available
@@ -795,13 +807,13 @@ export default function Home() {
                     <h3 className="text-[#f2a900] text-lg font-black uppercase tracking-wider" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                       🏀 Enter Tournament
                     </h3>
-                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4">
                       <div className="text-center">
                         <div className="text-white text-xs">Score</div>
                         <div className="text-[#f2a900] text-lg font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                           {calculateTeamScore().toFixed(1)}
-                        </div>
-                      </div>
+                          </div>
+                          </div>
                       <div className="text-center">
                         <div className="text-white text-xs">Salary</div>
                         <div className="text-[#f2a900] text-lg font-black" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
@@ -815,34 +827,33 @@ export default function Home() {
                   </div>
 
                   {/* Simple Status */}
-                  {isTeamLocked && (
+                  {(isTeamLocked || teamLockData) && (
                     <div className="mb-3 p-2 bg-[#0a0e27] border border-[#f2a900] rounded text-center">
                       <div className="text-[#f2a900] font-bold text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                        {teamLockData?.status === 'waiting_for_opponent' ? '⏳ Waiting for Opponent' : 
-                         teamLockData?.status === 'matched' ? `✅ Matched with ${userMatchup?.opponent}` : 
-                         '🔒 Team Locked'}
+                        {isTeamLocked ? 
+                          `✅ Matched with ${userMatchup?.opponent} - 24h to adjust team` : 
+                          '⏳ Waiting for Opponent'}
                       </div>
                     </div>
                   )}
 
-                  {/* Register Button */}
+          {/* Register Button */}
                   <div className="text-center">
-                    <button
-                      onClick={registerLineup}
+            <button
+              onClick={registerLineup}
                       disabled={isTeamLocked || Object.values(lineup).some(pos => pos === null) || 
                                Object.values(lineup).reduce((sum, playerId) => {
                                  const player = players.find(p => p.id === playerId);
                                  return sum + (player?.salary || 0);
                                }, 0) > 17}
                       className="bg-[#f2a900] text-[#0a0e27] px-8 py-2 font-black uppercase tracking-wider hover:bg-white transition-colors disabled:bg-gray-600 disabled:text-gray-400"
-                      style={{ fontFamily: 'Bebas Neue, sans-serif' }}
-                    >
+              style={{ fontFamily: 'Bebas Neue, sans-serif' }}
+            >
                       {isTeamLocked ? 
-                        (teamLockData?.status === 'waiting_for_opponent' ? 'Waiting...' : 
-                         'Team Locked') : 
+                        'Team Locked (24h adjustment period)' : 
                         'Enter Tournament'}
-                    </button>
-                  </div>
+            </button>
+          </div>
                 </div>
               )}
 
@@ -869,30 +880,30 @@ export default function Home() {
                             'bg-gray-600 text-white'
                           }`}>
                             {index + 1}
-                  </div>
+                              </div>
                         <div>
                           <div className="text-white font-bold text-sm">{entry.username}</div>
                           <div className="text-gray-400 text-xs">{entry.wins}W - {entry.losses}L</div>
                           <div className="text-gray-500 text-xs">{entry.gamesPlayed || 0} games</div>
                 </div>
-              </div>
+                            </div>
                             <div className="text-right">
                           <div className="text-[#f2a900] font-black text-sm" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                             {entry.totalScore.toFixed(1)}
-            </div>
+                            </div>
                           <div className="text-gray-400 text-xs">points</div>
-          </div>
-            </div>
+                          </div>
+                        </div>
                     ))
                   ) : (
                     <div className="text-center py-8">
                       <div className="text-4xl mb-2">🏆</div>
                       <p className="text-gray-400 text-sm">No players yet</p>
                       <p className="text-gray-500 text-xs">Be the first to register a lineup!</p>
-            </div>
+                  </div>
                 )}
-          </div>
-          </div>
+              </div>
+            </div>
 
               {/* Tournament Info */}
               {currentTournament && (
@@ -919,10 +930,10 @@ export default function Home() {
                         {Math.floor(timeUntilDeadline / (1000 * 60 * 60))}h {Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60))}m
                               </span>
                             </div>
-                            </div>
-                  </div>
-                )}
-              </div>
+          </div>
+        </div>
+      )}
+    </div>
             </div>
           </div>
 
@@ -934,7 +945,7 @@ export default function Home() {
             <div className="space-y-4 text-gray-300">
               <p>
                 <strong className="text-white">How it works:</strong> Build your ultimate NBA lineup with a 17-token salary cap. 
-                Enter the tournament and get matched with random opponents every 24 hours. Change your lineup weekly!
+                Enter the tournament and get matched with random opponents every 24 hours. You have 24 hours to adjust your team after getting matched!
               </p>
               <p>
                 <strong className="text-white">Scoring:</strong> Points League format - PTS×1 + REB×1.2 + AST×1.5 + STL×3 + BLK×3 - TO×1
@@ -944,7 +955,7 @@ export default function Home() {
                 the higher you climb on the leaderboard!
               </p>
               <p>
-                <strong className="text-white">Lineup Changes:</strong> You can change your lineup once per week to adapt to player performance and matchups.
+                <strong className="text-white">Team Adjustments:</strong> After getting matched with an opponent, you have 24 hours to make final adjustments to your lineup before the game locks.
               </p>
               <p>
                 <strong className="text-white">Free to Play:</strong> No entry fees, no hidden costs. Just pure NBA fantasy competition on Solana!
