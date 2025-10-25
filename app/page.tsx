@@ -303,6 +303,60 @@ export default function Home() {
     };
   };
 
+  // Daily opponent shuffling system - runs every 24 hours
+  const shuffleAllOpponents = () => {
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Check if we already shuffled today
+    const lastShuffleDate = localStorage.getItem('lastOpponentShuffle');
+    if (lastShuffleDate === today) {
+      return; // Already shuffled today
+    }
+    
+    console.log('🔄 Daily opponent shuffle starting...');
+    
+    // Shuffle all registered users
+    const shuffledUsers = [...registeredUsers].sort(() => Math.random() - 0.5);
+    
+    // Create new matchups for all users
+    shuffledUsers.forEach((userWallet, index) => {
+      // Find opponent (next user in shuffled list, or first if at end)
+      const opponentIndex = (index + 1) % shuffledUsers.length;
+      const opponentWallet = shuffledUsers[opponentIndex];
+      
+      // Skip if user would be matched with themselves
+      if (userWallet === opponentWallet) {
+        return;
+      }
+      
+      // Create new matchup
+      const opponentProfile = loadUserProfile(opponentWallet);
+      const newMatchup = {
+        opponent: opponentProfile ? opponentProfile.username : formatAddress(opponentWallet),
+        opponentWallet: opponentWallet,
+        isBot: false,
+        matchupId: `matchup_${Date.now()}_${index}`,
+        startTime: new Date().toISOString(),
+        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        gameDate: today
+      };
+      
+      // Save matchup for user
+      saveMatchup(userWallet, newMatchup);
+      
+      // Clear any existing locked team data (start fresh)
+      localStorage.removeItem(`lockedTeam_${userWallet}`);
+      localStorage.removeItem(`teamData_${userWallet}`);
+      
+      console.log(`✅ ${userWallet.substring(0, 6)}... matched with ${opponentWallet.substring(0, 6)}...`);
+    });
+    
+    // Mark today as shuffled
+    localStorage.setItem('lastOpponentShuffle', today);
+    console.log(`🎯 Daily opponent shuffle completed for ${registeredUsers.length} users`);
+  };
+
   const saveMatchup = (walletAddress: string, matchup: Matchup) => {
     localStorage.setItem(`matchup_${walletAddress}`, JSON.stringify(matchup));
   };
@@ -518,6 +572,14 @@ export default function Home() {
       }
     }
   };
+
+  // Check for daily opponent shuffles
+  useEffect(() => {
+    if (isClient) {
+      // Run daily opponent shuffle check
+      shuffleAllOpponents();
+    }
+  }, [isClient]);
 
   // Load leaderboard from localStorage (real user data only)
   useEffect(() => {
@@ -945,7 +1007,7 @@ export default function Home() {
             <div className="space-y-4 text-gray-300">
               <p>
                 <strong className="text-white">How it works:</strong> Build your ultimate NBA lineup with a 17-token salary cap. 
-                Enter the tournament and get matched with random opponents every 24 hours. You have 24 hours to adjust your team after getting matched!
+                Enter the tournament and get matched with random opponents every 24 hours. Opponents are automatically shuffled daily!
               </p>
               <p>
                 <strong className="text-white">Scoring:</strong> Points League format - PTS×1 + REB×1.2 + AST×1.5 + STL×3 + BLK×3 - TO×1
@@ -953,6 +1015,9 @@ export default function Home() {
               <p>
                 <strong className="text-white">Leaderboard:</strong> Your points accumulate over time. The more games you play, 
                 the higher you climb on the leaderboard!
+              </p>
+              <p>
+                <strong className="text-white">Daily Shuffling:</strong> Every 24 hours, all registered users get new random opponents automatically. No manual matching needed!
               </p>
               <p>
                 <strong className="text-white">Team Adjustments:</strong> After getting matched with an opponent, you have 24 hours to make final adjustments to your lineup before the game locks.
