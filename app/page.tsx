@@ -198,6 +198,12 @@ export default function Home() {
   useEffect(() => {
     if (isClient) {
       const tournamentService = TournamentService.getInstance();
+      
+      // Initialize default tournament if none exists
+      if (!tournamentService.getCurrentTournament()) {
+        tournamentService.initializeDefaultTournament();
+      }
+      
       const activeTournament = tournamentService.getCurrentTournament();
       setCurrentTournament(activeTournament);
       
@@ -408,7 +414,18 @@ export default function Home() {
 
     try {
       const tournamentService = TournamentService.getInstance();
+      
+      // Ensure tournament service is initialized
+      if (!tournamentService.getCurrentTournament()) {
+        tournamentService.initializeDefaultTournament();
+      }
+      
       const currentTournament = tournamentService.getCurrentTournament();
+      
+      if (!currentTournament) {
+        alert('No active tournament available. Please try again.');
+        return;
+      }
       
       const success = tournamentService.registerLineup(
         wallet.publicKey.toString(),
