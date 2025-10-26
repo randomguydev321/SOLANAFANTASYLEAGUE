@@ -26,7 +26,6 @@ export interface Player {
   ftm: number;
   fta: number;
   fantasy_points: number; // Calculated from season averages for team building
-  daily_fantasy_points: number; // Accumulates from real daily games (starts at 0)
   is_playing: boolean;
 }
 
