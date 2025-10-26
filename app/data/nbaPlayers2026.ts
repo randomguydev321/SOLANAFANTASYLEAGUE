@@ -1,6 +1,12 @@
 // NBA Players Database - 2026 Season Stats
 // All 150+ players with real NBA IDs and projected 2026 stats
 
+// Helper function to calculate fantasy points from season averages
+const calculateFantasyPoints = (pts: number, reb: number, ast: number, stl: number, blk: number, turnovers: number): number => {
+  // Fantasy Points = PTS + (REB × 1.2) + (AST × 1.5) + (STL × 3) + (BLK × 3) - (TO × 1)
+  return pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - (turnovers * 1);
+};
+
 export interface Player {
   id: number;
   name: string;
@@ -19,7 +25,8 @@ export interface Player {
   fga: number;
   ftm: number;
   fta: number;
-  fantasy_points: number; // Starts at 0, accumulates from real games
+  fantasy_points: number; // Calculated from season averages for team building
+  daily_fantasy_points: number; // Accumulates from real daily games (starts at 0)
   is_playing: boolean;
 }
 
