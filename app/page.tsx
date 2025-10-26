@@ -418,7 +418,7 @@ export default function Home() {
   const connectWallet = async () => {
     try {
       if (!wallet.wallet) {
-        alert('Please select a wallet first');
+        console.log('Please select a wallet first');
         return;
       }
       await wallet.connect();
@@ -430,7 +430,7 @@ export default function Home() {
   // Remove player from lineup
   const removePlayer = (position: keyof Lineup) => {
     if (isTeamLocked) {
-      alert('Team is locked for 24 hours. Cannot make changes.');
+      console.log('Team is locked for 24 hours. Cannot make changes.');
       return;
     }
     
@@ -442,14 +442,14 @@ export default function Home() {
 
   const registerLineup = async () => {
     if (!wallet.connected || !wallet.publicKey) {
-      alert('Please connect your wallet first');
+      console.log('Please connect your wallet first');
       return;
     }
 
     // Check if all positions are filled
     const positions = Object.values(lineup);
     if (positions.some(pos => pos === null)) {
-      alert('Please select a player for each position');
+      console.log('Please select a player for each position');
       return;
     }
 
@@ -460,7 +460,7 @@ export default function Home() {
     }, 0);
 
     if (totalSalary > 17) {
-      alert('Lineup exceeds salary cap of 17 tokens');
+      console.log('Lineup exceeds salary cap of 17 tokens');
       return;
     }
 
@@ -475,7 +475,7 @@ export default function Home() {
       const currentTournament = tournamentService.getCurrentTournament();
       
       if (!currentTournament) {
-        alert('Tournament service not initialized. Please refresh the page.');
+        console.log('Tournament service not initialized. Please refresh the page.');
         return;
       }
       
@@ -487,7 +487,7 @@ export default function Home() {
       );
       
       if (!success) {
-        alert('Failed to register lineup. Tournament may be full or deadline passed.');
+        console.log('Failed to register lineup. Tournament may be full or deadline passed.');
         return;
       }
 
@@ -539,13 +539,13 @@ export default function Home() {
       });
 
       if (matchup) {
-        alert(`Tournament entered successfully! You've been matched with opponent: ${matchup.opponent}. You have 24 hours to adjust your team before the game locks! Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
+        console.log(`Tournament entered successfully! You've been matched with opponent: ${matchup.opponent}. You have 24 hours to adjust your team before the game locks! Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
       } else {
-        alert(`Tournament entered successfully! Waiting for opponent... You can still adjust your team until matched. Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
+        console.log(`Tournament entered successfully! Waiting for opponent... You can still adjust your team until matched. Team Score: ${currentTeamScore.toFixed(1)} fantasy points!`);
       }
     } catch (error) {
       console.error('Error registering lineup:', error);
-      alert('Failed to register lineup');
+      console.log('Failed to register lineup');
     }
   };
 
@@ -883,7 +883,7 @@ export default function Home() {
                 selectedByPosition={lineup}
                 onSelectPlayer={(playerId, position) => {
                   if (isTeamLocked) {
-                    alert('Team is locked for 24 hours. Cannot make changes.');
+                    console.log('Team is locked for 24 hours. Cannot make changes.');
                     return;
                   }
                   setLineup(prev => ({

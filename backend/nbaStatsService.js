@@ -39,6 +39,81 @@ class NBAStatsService {
            (stats.to * 1);
   }
 
+  // Fetch player season averages from NBA API (2025-2026 season)
+  async fetchPlayerSeasonAverages(nbaPlayerId) {
+    try {
+      const season = '2025-26'; // Current NBA season
+      const url = `https://stats.nba.com/stats/playerdashboardbyyearoveryear?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=00&Location=&MeasureType=Base&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerID=${nbaPlayerId}&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=Regular%20Season&ShotClockRange=&VsConference=&VsDivision=`;
+      
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Referer': 'https://stats.nba.com/',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Sec-Fetch-Dest': 'empty',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Site': 'same-site'
+        },
+        timeout: 10000
+      });
+      
+      const data = response.data;
+      if (data.resultSets && data.resultSets[0] && data.resultSets[0].rowSet.length > 0) {
+        const seasonStats = data.resultSets[0].rowSet[0];
+        const headers = data.resultSets[0].headers;
+
+        const getStat = (header) => {
+          const index = headers.indexOf(header);
+          return index !== -1 ? parseFloat(seasonStats[index]) || 0 : 0;
+        };
+
+        const stats = {
+          pts: getStat('PTS'),
+          reb: getStat('REB'),
+          ast: getStat('AST'),
+          stl: getStat('STL'),
+          blk: getStat('BLK'),
+          turnovers: getStat('TOV'),
+          fgm: getStat('FGM'),
+          fga: getStat('FGA'),
+          ftm: getStat('FTM'),
+          fta: getStat('FTA'),
+          gamesPlayed: getStat('GP'),
+          minutes: getStat('MIN'),
+          isPlaying: getStat('GP') > 0 // Playing if games played > 0
+        };
+        
+        // Calculate fantasy points from season averages
+        const fantasyPoints = this.calculateFantasyPoints(stats);
+        return { ...stats, fantasyPoints };
+      }
+      
+      // If no season stats available, return zero stats
+      return {
+        pts: 0,
+        reb: 0,
+        ast: 0,
+        stl: 0,
+        blk: 0,
+        turnovers: 0,
+        fgm: 0,
+        fga: 0,
+        ftm: 0,
+        fta: 0,
+        minutes: 0,
+        gamesPlayed: 0,
+        isPlaying: false,
+        fantasyPoints: 0
+      };
+    } catch (error) {
+      console.error(`Error fetching season averages for player ${nbaPlayerId}:`, error.message);
+      return null;
+    }
+  }
+
   // Fetch player daily game logs from NBA API (2025-2026 season)
   async fetchPlayerDailyStats(nbaPlayerId) {
     try {
@@ -161,13 +236,13 @@ class NBAStatsService {
       return this.cachedStats;
     }
 
-    console.log('Fetching daily NBA game logs for 24-hour competition...');
+    console.log('Fetching REAL 2025-26 season averages for all players...');
     const allPlayers = await pool.query('SELECT id, nba_id, name, team, position, salary FROM players');
     const liveStatsPromises = allPlayers.rows.map(async (player) => {
       let stats = null;
       
-      // Try to fetch daily stats from NBA API (actual games played)
-      stats = await this.fetchPlayerDailyStats(player.nba_id);
+      // Try to fetch REAL season averages from NBA API (2025-26 season)
+      stats = await this.fetchPlayerSeasonAverages(player.nba_id);
 
       if (stats) {
         // Update DB

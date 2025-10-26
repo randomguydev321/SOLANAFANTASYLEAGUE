@@ -33,9 +33,9 @@ class StatsUpdater {
   setupCronJobs() {
     console.log('Setting up NBA stats update cron jobs...');
     
-    // Update daily stats every day at 6 AM EST
+    // Update season averages every day at 6 AM EST
     cron.schedule('0 6 * * *', async () => {
-      console.log('Running daily NBA stats update...');
+      console.log('Running NBA season averages update...');
       await this.updateStats();
     }, {
       timezone: "America/New_York"
@@ -57,7 +57,7 @@ class StatsUpdater {
     }
 
     this.isRunning = true;
-    console.log('Starting NBA daily stats update...');
+    console.log('Starting NBA season averages update...');
 
     try {
       const liveStats = await this.nbaStatsService.getLiveStats(true);
@@ -77,7 +77,7 @@ class StatsUpdater {
         );
       }
       
-      console.log('NBA daily stats update completed successfully');
+      console.log('NBA season averages update completed successfully');
     } catch (error) {
       console.error('Error updating NBA stats:', error);
     } finally {
