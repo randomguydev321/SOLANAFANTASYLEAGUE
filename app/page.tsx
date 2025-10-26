@@ -382,19 +382,34 @@ export default function Home() {
   };
 
   // Leaderboard functions - Accumulate points over time
-  const updateLeaderboard = (walletAddress: string, score: number, isWin: boolean) => {
+  const updateLeaderboard = async (walletAddress: string, score: number, isWin: boolean) => {
     const existingEntry = leaderboardData.find(entry => entry.wallet === walletAddress);
+    let newTotalScore: number;
+    let newWins: number;
+    let newLosses: number;
+    let newGamesPlayed: number;
+
     if (existingEntry) {
       // Accumulate points over time
-      existingEntry.totalScore += score;
-      existingEntry.wins += isWin ? 1 : 0;
-      existingEntry.losses += isWin ? 0 : 1;
-      existingEntry.gamesPlayed += 1;
+      newTotalScore = existingEntry.totalScore + score;
+      newWins = existingEntry.wins + (isWin ? 1 : 0);
+      newLosses = existingEntry.losses + (isWin ? 0 : 1);
+      newGamesPlayed = existingEntry.gamesPlayed + 1;
+      
+      existingEntry.totalScore = newTotalScore;
+      existingEntry.wins = newWins;
+      existingEntry.losses = newLosses;
+      existingEntry.gamesPlayed = newGamesPlayed;
       existingEntry.lastScore = score;
       existingEntry.lastUpdate = new Date().toISOString();
     } else {
       // New player entry
-      leaderboardData.push({
+      newTotalScore = score;
+      newWins = isWin ? 1 : 0;
+      newLosses = isWin ? 0 : 1;
+      newGamesPlayed = 1;
+      
+      const newEntry = {
         wallet: walletAddress,
         username: userProfile?.username || formatAddress(walletAddress),
         totalScore: score,
@@ -404,15 +419,35 @@ export default function Home() {
         lastScore: score,
         lastUpdate: new Date().toISOString(),
         joinDate: new Date().toISOString()
-      });
+      };
+      leaderboardData.push(newEntry);
     }
     
     // Sort by total accumulated score
     leaderboardData.sort((a, b) => b.totalScore - a.totalScore);
     setLeaderboardData([...leaderboardData]);
     
-    // Save to localStorage
+    // Save to localStorage (fallback)
     localStorage.setItem('leaderboardData', JSON.stringify(leaderboardData));
+
+    // Save to database
+    try {
+      await fetch('/api/leaderboard', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet_address: walletAddress,
+          username: userProfile?.username || formatAddress(walletAddress),
+          total_fantasy_points: newTotalScore,
+          wins: newWins,
+          losses: newLosses,
+          games_played: newGamesPlayed
+        })
+      });
+      console.log('✅ Leaderboard updated in database');
+    } catch (error) {
+      console.error('Error updating leaderboard in database:', error);
+    }
   };
 
   const connectWallet = async () => {
@@ -531,7 +566,7 @@ export default function Home() {
       const currentTeamScore = calculateTeamScore();
       
       // Update leaderboard with accumulated points
-      updateLeaderboard(wallet.publicKey.toString(), currentTeamScore, true);
+      await updateLeaderboard(wallet.publicKey.toString(), currentTeamScore, true);
       
       // Update user profile with win
       updateUserProfile({ 
@@ -617,20 +652,39 @@ export default function Home() {
     console.log('🧹 Mock data cleared - starting fresh!');
   };
 
-  // Load leaderboard from localStorage (real user data only)
+  // Load leaderboard from database
   useEffect(() => {
     if (isClient) {
       // Clear any mock data first
       clearMockData();
       
-      // Load real leaderboard data from localStorage
-      const savedLeaderboard = localStorage.getItem('leaderboardData');
-      if (savedLeaderboard) {
-        setLeaderboardData(JSON.parse(savedLeaderboard));
-      } else {
-        // Start with empty leaderboard - no mock data
-        setLeaderboardData([]);
-      }
+      // Load leaderboard from database API
+      const loadLeaderboard = async () => {
+        try {
+          const response = await fetch('/api/leaderboard');
+          if (response.ok) {
+            const data = await response.json();
+            setLeaderboardData(data.leaderboard || []);
+            console.log('✅ Loaded leaderboard from database');
+          } else {
+            console.error('Failed to load leaderboard from database');
+            // Fallback to localStorage if database fails
+            const savedLeaderboard = localStorage.getItem('leaderboardData');
+            if (savedLeaderboard) {
+              setLeaderboardData(JSON.parse(savedLeaderboard));
+            }
+          }
+        } catch (error) {
+          console.error('Error loading leaderboard:', error);
+          // Fallback to localStorage if database fails
+          const savedLeaderboard = localStorage.getItem('leaderboardData');
+          if (savedLeaderboard) {
+            setLeaderboardData(JSON.parse(savedLeaderboard));
+          }
+        }
+      };
+      
+      loadLeaderboard();
     }
   }, [isClient]);
 

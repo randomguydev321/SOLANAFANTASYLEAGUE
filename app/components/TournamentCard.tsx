@@ -140,3 +140,4 @@ export default function TournamentCard({ tournament, onEnter, loading = false }:
 
 
 
+
