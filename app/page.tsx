@@ -652,20 +652,21 @@ export default function Home() {
     console.log('🧹 Mock data cleared - starting fresh!');
   };
 
-  // Load leaderboard from database
+  // Load personal leaderboard from database
   useEffect(() => {
-    if (isClient) {
+    if (isClient && wallet.connected && wallet.publicKey) {
       // Clear any mock data first
       clearMockData();
       
-      // Load leaderboard from database API
+      // Load personal leaderboard from database API
       const loadLeaderboard = async () => {
         try {
-          const response = await fetch('/api/leaderboard');
+          const walletAddress = wallet.publicKey.toString();
+          const response = await fetch(`/api/leaderboard?wallet_address=${walletAddress}`);
           if (response.ok) {
             const data = await response.json();
             setLeaderboardData(data.leaderboard || []);
-            console.log('✅ Loaded leaderboard from database');
+            console.log('✅ Loaded personal leaderboard from database');
           } else {
             console.error('Failed to load leaderboard from database');
             // Fallback to localStorage if database fails
@@ -685,8 +686,11 @@ export default function Home() {
       };
       
       loadLeaderboard();
+    } else if (isClient && !wallet.connected) {
+      // Not connected - clear leaderboard
+      setLeaderboardData([]);
     }
-  }, [isClient]);
+  }, [isClient, wallet.connected, wallet.publicKey]);
 
   // Check for locked team and load opponent data
   useEffect(() => {
@@ -1021,11 +1025,11 @@ export default function Home() {
           {/* Leaderboard */}
               <div id="leaderboard-section" className="bg-[#1a1f3a] border-4 border-[#f2a900] p-6">
                 <h3 className="text-[#f2a900] text-xl font-black uppercase tracking-wider mb-4" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
-                  🏆 Leaderboard
+                  {wallet.connected ? '⭐ Your Stats' : '🏆 Leaderboard'}
                 </h3>
                 <div className="space-y-3">
                   {leaderboardData.length > 0 ? (
-                    leaderboardData.slice(0, 5).map((entry, index) => (
+                    leaderboardData.map((entry, index) => (
                       <div key={entry.wallet} className="flex items-center justify-between bg-[#0a0e27] p-3 rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${

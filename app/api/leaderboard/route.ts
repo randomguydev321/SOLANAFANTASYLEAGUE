@@ -6,9 +6,18 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// GET - Fetch leaderboard
-export async function GET() {
+// GET - Fetch leaderboard (personal stats only)
+export async function GET(request: Request) {
   try {
+    // Get wallet_address from query params
+    const { searchParams } = new URL(request.url);
+    const walletAddress = searchParams.get('wallet_address');
+
+    if (!walletAddress) {
+      return NextResponse.json({ error: 'Wallet address required' }, { status: 400 });
+    }
+
+    // Only fetch stats for the connected wallet
     const result = await pool.query(`
       SELECT 
         wallet_address,
@@ -18,23 +27,27 @@ export async function GET() {
         losses,
         games_played
       FROM leaderboard 
-      ORDER BY total_fantasy_points DESC
-      LIMIT 100
-    `);
+      WHERE wallet_address = $1
+    `, [walletAddress]);
 
-    const leaderboard = result.rows.map((row, index) => ({
-      rank: index + 1,
-      wallet: row.wallet_address,
-      username: row.username || 'Anonymous',
-      points: parseFloat(row.total_fantasy_points) || 0,
-      wins: parseInt(row.wins) || 0,
-      losses: parseInt(row.losses) || 0,
-      games: parseInt(row.games_played) || 0
-    }));
+    // If user has stats, return them
+    if (result.rows.length > 0) {
+      const userData = result.rows[0];
+      const leaderboard = [{
+        wallet: userData.wallet_address,
+        username: userData.username || 'Anonymous',
+        points: parseFloat(userData.total_fantasy_points) || 0,
+        wins: parseInt(userData.wins) || 0,
+        losses: parseInt(userData.losses) || 0,
+        games: parseInt(userData.games_played) || 0
+      }];
 
-    console.log(`✅ Fetched ${leaderboard.length} leaderboard entries`);
-    
-    return NextResponse.json({ leaderboard });
+      console.log(`✅ Fetched personal stats for ${walletAddress}`);
+      return NextResponse.json({ leaderboard });
+    }
+
+    // If no stats yet, return empty array
+    return NextResponse.json({ leaderboard: [] });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
